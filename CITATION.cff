@@ -4,8 +4,8 @@ authors:
   - name: "gadwant"
     alias: "adwantg"
 title: "bigocheck: Zero-dependency Big-O complexity checker for Python"
-version: "0.2.0"
-date-released: "2025-01-17"
+version: "0.7.0"
+date-released: "2026-01-17"
 url: "https://github.com/adwantg/bigocheck"
 repository-code: "https://github.com/adwantg/bigocheck"
 license: MIT
