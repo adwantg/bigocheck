@@ -69,3 +69,5 @@ release.sh
 
 # Strategy Docs
 GROWTH_STRATEGY.md
+
+examples/readme_demo.py
