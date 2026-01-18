@@ -12,6 +12,38 @@ from typing import List
 from .core import Analysis, benchmark_function, resolve_callable
 
 
+def _format_scale(scale: float) -> str:
+    """Format time scale in human-readable units."""
+    if scale < 0:
+        return f"{scale:.4g}"
+    
+    if scale >= 1:
+        return f"{scale:.2f} s/elem"
+    elif scale >= 1e-3:
+        return f"{scale * 1e3:.2f} ms/elem"
+    elif scale >= 1e-6:
+        return f"{scale * 1e6:.2f} µs/elem"
+    elif scale >= 1e-9:
+        return f"{scale * 1e9:.2f} ns/elem"
+    else:
+        return f"{scale:.2e}"
+
+
+def _format_scale_bytes(scale: float) -> str:
+    """Format memory scale in human-readable units."""
+    if scale < 0:
+        return f"{scale:.4g}"
+    
+    if scale >= 1e9:
+        return f"{scale / 1e9:.2f} GB/elem"
+    elif scale >= 1e6:
+        return f"{scale / 1e6:.2f} MB/elem"
+    elif scale >= 1e3:
+        return f"{scale / 1e3:.2f} KB/elem"
+    else:
+        return f"{scale:.2f} B/elem"
+
+
 def _parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Empirical complexity regression checker.",
@@ -22,10 +54,13 @@ Examples:
   bigocheck run --target mymodule:myfunc --sizes 100 500 1000 --trials 5 --warmup 2
   bigocheck run --target mymodule:myfunc --sizes 100 500 1000 --json
   bigocheck run --target mymodule:myfunc --sizes 100 500 1000 --verbose --memory
+  bigocheck regression --target mymodule:myfunc --baseline baseline.json
+  bigocheck repl
 """,
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
+    # Run command
     run_parser = sub.add_parser("run", help="Run a benchmark against a callable.")
     run_parser.add_argument(
         "--target",
@@ -79,6 +114,49 @@ Examples:
         metavar="PATH",
         help="Save plot to file instead of displaying",
     )
+    run_parser.add_argument(
+        "--html",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Generate HTML report and save to file",
+    )
+    run_parser.add_argument(
+        "--save-baseline",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Save results as baseline for regression detection",
+    )
+
+    # Regression command
+    reg_parser = sub.add_parser("regression", help="Check for performance regressions.")
+    reg_parser.add_argument(
+        "--target",
+        required=True,
+        help="Import path in the form module:func",
+    )
+    reg_parser.add_argument(
+        "--baseline",
+        required=True,
+        help="Path to baseline JSON file",
+    )
+    reg_parser.add_argument(
+        "--sizes",
+        nargs="+",
+        type=int,
+        default=None,
+        help="Input sizes (uses baseline sizes if not specified)",
+    )
+    reg_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.2,
+        help="Slowdown threshold (0.2 = 20%%). Default: 0.2",
+    )
+
+    # REPL command
+    sub.add_parser("repl", help="Start interactive REPL mode.")
 
     return parser.parse_args(argv)
 
@@ -131,14 +209,14 @@ def _print_human(analysis: Analysis, show_memory: bool = False) -> None:
     print("\nTime Fits (lower error is better):")
     for f in analysis.fits[:5]:  # Show top 5
         marker = " ★" if f.label == analysis.best_label else ""
-        print(f"  {f.label:<12} error={f.error:.4f} scale={f.scale:.6g}{marker}")
+        print(f"  {f.label:<12} error={f.error:.4f} scale={_format_scale(f.scale)}{marker}")
     
     # Show space fits if available
     if show_memory and analysis.space_fits:
         print("\nSpace Fits (lower error is better):")
         for f in analysis.space_fits[:5]:  # Show top 5
             marker = " ★" if f.label == analysis.space_label else ""
-            print(f"  {f.label:<12} error={f.error:.4f} scale={f.scale:.6g}{marker}")
+            print(f"  {f.label:<12} error={f.error:.4f} scale={_format_scale_bytes(f.scale)}{marker}")
 
 
 def main(argv: List[str] | None = None) -> None:
@@ -169,6 +247,19 @@ def main(argv: List[str] | None = None) -> None:
         else:
             _print_human(analysis, show_memory=args.memory)
         
+        # Save baseline if requested
+        if args.save_baseline:
+            from .regression import save_baseline
+            save_baseline(analysis, args.save_baseline, name=args.target)
+            print(f"\nBaseline saved to: {args.save_baseline}")
+        
+        # Generate HTML report if requested
+        if args.html:
+            from .html_report import generate_html_report, save_html_report
+            html_content = generate_html_report(analysis, title=f"Analysis: {args.target}")
+            save_html_report(html_content, args.html)
+            print(f"\nHTML report saved to: {args.html}")
+        
         # Handle plotting
         if args.plot or args.plot_save:
             try:
@@ -183,6 +274,50 @@ def main(argv: List[str] | None = None) -> None:
                     print(f"\nPlot saved to: {args.plot_save}")
             except ImportError as e:
                 print(f"\nWarning: {e}", file=sys.stderr)
+    
+    elif args.command == "regression":
+        try:
+            func = resolve_callable(args.target)
+        except (ValueError, ModuleNotFoundError, AttributeError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        
+        from .regression import load_baseline, detect_regression
+        
+        try:
+            baseline = load_baseline(args.baseline)
+        except FileNotFoundError:
+            print(f"Error: Baseline not found: {args.baseline}", file=sys.stderr)
+            sys.exit(1)
+        
+        # Use baseline sizes if not specified
+        sizes = args.sizes
+        if sizes is None:
+            sizes = [m["size"] for m in baseline.measurements]
+        
+        print(f"Running regression check against {args.baseline}...")
+        print(f"  Baseline: {baseline.best_label}")
+        
+        analysis = benchmark_function(func, sizes=sizes, trials=3)
+        
+        result = detect_regression(analysis, baseline, time_threshold=args.threshold)
+        
+        print(f"\nResults:")
+        print(f"  Current:  {analysis.best_label}")
+        print(f"  Baseline: {baseline.best_label}")
+        print(f"  Slowdown: {result.time_slowdown:.2f}x")
+        print(f"\n{result.message}")
+        
+        if result.has_regression:
+            print("\n❌ REGRESSION DETECTED")
+            sys.exit(1)
+        else:
+            print("\n✅ No regression detected")
+            sys.exit(0)
+    
+    elif args.command == "repl":
+        from .interactive import start_repl
+        start_repl()
 
 
 if __name__ == "__main__":

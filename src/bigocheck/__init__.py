@@ -66,6 +66,45 @@ from .cases import (
     format_cases_result,
 )
 
+# Polynomial fitting
+from .polynomial import (
+    PolynomialFit,
+    fit_polynomial,
+    fit_polynomial_space,
+)
+
+# Async benchmarking
+from .async_bench import (
+    benchmark_async,
+    run_benchmark_async,
+)
+
+# Amortized analysis
+from .amortized import (
+    AmortizedResult,
+    OperationMeasurement,
+    analyze_amortized,
+    analyze_sequence,
+)
+
+# Parallel benchmarking
+from .parallel import (
+    benchmark_parallel,
+    speedup_estimate,
+)
+
+# HTML reports
+from .html_report import (
+    generate_html_report,
+    save_html_report,
+)
+
+# Interactive mode
+from .interactive import (
+    start_repl,
+    quick_check,
+)
+
 __all__ = [
     # Version
     "__version__",
@@ -111,6 +150,27 @@ __all__ = [
     "CasesAnalysis",
     "analyze_cases",
     "format_cases_result",
+    # Polynomial
+    "PolynomialFit",
+    "fit_polynomial",
+    "fit_polynomial_space",
+    # Async
+    "benchmark_async",
+    "run_benchmark_async",
+    # Amortized
+    "AmortizedResult",
+    "OperationMeasurement",
+    "analyze_amortized",
+    "analyze_sequence",
+    # Parallel
+    "benchmark_parallel",
+    "speedup_estimate",
+    # HTML
+    "generate_html_report",
+    "save_html_report",
+    # Interactive
+    "start_repl",
+    "quick_check",
 ]
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"

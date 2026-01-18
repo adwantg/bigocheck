@@ -17,12 +17,18 @@ Empirical complexity regression checker: run a target function across input size
 | Feature | Description |
 |---------|-------------|
 | **🧮 Time Complexity** | Fits to 9 classes: O(1), O(log n), O(√n), O(n), O(n log n), O(n²), O(n³), O(2ⁿ), O(n!) |
-| **📐 Space Complexity** | Classifies memory usage to complexity classes (O(1), O(n), O(n²), etc.) |
+| **📐 Space Complexity** | Classifies memory usage to complexity classes |
+| **📏 Polynomial Fitting** | Detect O(n^k) for arbitrary k (e.g., O(n^2.34)) |
 | **📊 Statistical Significance** | P-values to validate complexity classification |
-| **🔄 Regression Detection** | Save baselines and detect performance regressions in CI/CD |
+| **🔄 Regression Detection** | CLI: `bigocheck regression --baseline file.json` |
 | **📉 Best/Worst/Avg Cases** | Analyze with sorted, reversed, and random inputs |
-| **✅ Complexity Assertions** | `@assert_complexity("O(n)")` decorator for CI/CD testing |
-| **🔍 Bounds Verification** | `verify_bounds()` to check if function meets expected complexity |
+| **⚡ Async Support** | Benchmark `async def` functions |
+| **📊 Amortized Analysis** | Track complexity over sequences of operations |
+| **🚀 Parallel Benchmarking** | Run sizes in parallel for faster results |
+| **📑 HTML Reports** | Generate beautiful HTML reports with SVG charts |
+| **💻 Interactive REPL** | CLI: `bigocheck repl` for quick analysis |
+| **✅ Complexity Assertions** | `@assert_complexity("O(n)")` decorator |
+| **🔍 Bounds Verification** | `verify_bounds()` to check expected complexity |
 | **📊 Confidence Scoring** | Know how reliable your results are |
 | **🔀 A/B Comparison** | Compare two implementations head-to-head |
 | **📄 Report Generation** | Generate markdown reports automatically |
@@ -391,17 +397,243 @@ plot_all_fits(analysis, save_path="all_fits.png", show=False)
 ```
 
 ---
+### 1️⃣2️⃣ Polynomial Fitting
+
+Detect O(n^k) for arbitrary k values.
+
+```python
+from bigocheck import benchmark_function, fit_polynomial
+
+def my_func(n):
+    return sum(i * i for i in range(n))
+
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000, 5000])
+poly = fit_polynomial(analysis.measurements)
+
+print(f"Detected: {poly.label}")      # e.g., "O(n^1.23)"
+print(f"Exponent: {poly.exponent:.2f}")  # 1.23
+print(f"Error: {poly.error:.4f}")
+```
+
+---
+
+### 1️⃣3️⃣ Statistical Significance
+
+Get p-values to validate complexity classification.
+
+```python
+from bigocheck import benchmark_function, compute_significance
+
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000, 5000, 10000])
+sig = compute_significance(analysis)
+
+print(f"p-value: {sig.p_value:.4f}")
+print(f"Significant: {sig.is_significant}")  # True if p < 0.05
+print(f"Confidence: {sig.confidence_level}")  # "high", "medium", "low"
+```
+
+---
+
+### 1️⃣4️⃣ Regression Detection (CI/CD)
+
+Save baselines and detect performance regressions.
+
+**CLI:**
+```bash
+# Save a baseline
+bigocheck run --target mymodule:myfunc --sizes 100 500 1000 --save-baseline baseline.json
+
+# Check for regressions
+bigocheck regression --target mymodule:myfunc --baseline baseline.json
+```
+
+**Library:**
+```python
+from bigocheck import benchmark_function, save_baseline, load_baseline, detect_regression
+
+# Save baseline
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000])
+save_baseline(analysis, "baseline.json", name="v1.0")
+
+# Later: detect regressions
+current = benchmark_function(my_func, sizes=[100, 500, 1000])
+baseline = load_baseline("baseline.json")
+result = detect_regression(current, baseline, time_threshold=0.2)
+
+if result.has_regression:
+    print(f"❌ REGRESSION: {result.message}")
+else:
+    print("✅ No regression")
+```
+
+---
+
+### 1️⃣5️⃣ Best/Worst/Average Case Analysis
+
+Test performance with different input arrangements.
+
+```python
+from bigocheck import analyze_cases
+
+def my_sort(arr):
+    return sorted(arr)
+
+result = analyze_cases(my_sort, sizes=[1000, 5000, 10000])
+
+print(result.summary)
+# Case Analysis Summary:
+#   Best case:    best - O(n log n)
+#   Worst case:   worst - O(n log n)
+#   Average case: average - O(n log n)
+
+print(f"Best:  {result.best_case.time_complexity}")
+print(f"Worst: {result.worst_case.time_complexity}")
+```
+
+---
+
+### 1️⃣6️⃣ Async Function Support
+
+Benchmark `async def` functions.
+
+```python
+import asyncio
+from bigocheck import run_benchmark_async, benchmark_async
+
+async def fetch_data(n):
+    await asyncio.sleep(0.001 * n)
+    return list(range(n))
+
+# Synchronous wrapper (easier)
+analysis = run_benchmark_async(fetch_data, sizes=[10, 50, 100])
+print(f"Complexity: {analysis.best_label}")
+
+# Or use async directly
+async def main():
+    analysis = await benchmark_async(fetch_data, sizes=[10, 50, 100])
+    print(f"Complexity: {analysis.best_label}")
+
+asyncio.run(main())
+```
+
+---
+
+### 1️⃣7️⃣ Amortized Analysis
+
+Analyze complexity over sequences of operations.
+
+```python
+from bigocheck import analyze_amortized
+
+# Example: dynamic array append
+data = []
+def append_op():
+    data.append(len(data))
+
+result = analyze_amortized(append_op, n_operations=1000)
+
+print(result.summary)
+print(f"Amortized: {result.amortized_complexity}")
+print(f"Total time: {result.total_time:.6f}s")
+print(f"Per operation: {result.amortized_time:.9f}s")
+```
+
+---
+
+### 1️⃣8️⃣ Parallel Benchmarking
+
+Run benchmarks faster using parallel execution.
+
+```python
+from bigocheck import benchmark_parallel, benchmark_function
+import time
+
+def slow_func(n):
+    time.sleep(0.01)
+    return sum(range(n))
+
+# Sequential (slower)
+start = time.time()
+analysis = benchmark_function(slow_func, sizes=[100, 500, 1000, 5000], trials=1)
+print(f"Sequential: {time.time() - start:.2f}s")
+
+# Parallel (faster)
+start = time.time()
+analysis = benchmark_parallel(slow_func, sizes=[100, 500, 1000, 5000], trials=1)
+print(f"Parallel: {time.time() - start:.2f}s")
+```
+
+---
+
+### 1️⃣9️⃣ HTML Reports
+
+Generate beautiful HTML reports with SVG charts.
+
+**CLI:**
+```bash
+bigocheck run --target mymodule:myfunc --sizes 100 500 1000 --html report.html
+```
+
+**Library:**
+```python
+from bigocheck import benchmark_function, generate_html_report, save_html_report
+
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000, 5000], memory=True)
+html = generate_html_report(analysis, title="My Analysis")
+save_html_report(html, "report.html")
+```
+
+**Example Output:**
+
+![HTML Report Example](docs/html_report_screenshot.png)
+
+---
+
+### 2️⃣0️⃣ Interactive REPL
+
+Quick analysis from the command line.
+
+**CLI:**
+```bash
+bigocheck repl
+```
+
+**Output:**
+```
+╔══════════════════════════════════════════════════════════════════╗
+║  bigocheck Interactive Mode                                       ║
+║  Zero-dependency complexity analysis                              ║
+╠══════════════════════════════════════════════════════════════════╣
+║  Quick start:                                                     ║
+║  >>> def my_func(n): return sum(range(n))                        ║
+║  >>> a = benchmark_function(my_func, sizes=[100, 500, 1000])     ║
+║  >>> print(a.best_label)                                         ║
+╚══════════════════════════════════════════════════════════════════╝
+>>> 
+```
+
+**One-liner complexity check:**
+```python
+from bigocheck import quick_check
+
+result = quick_check(lambda n: sum(range(n)))
+print(result)  # "O(n)"
+```
+
+---
 
 ## 🖥️ CLI Reference
 
 ```bash
 bigocheck run --target MODULE:FUNC --sizes N1 N2 N3 [OPTIONS]
+bigocheck regression --target MODULE:FUNC --baseline FILE [OPTIONS]
+bigocheck repl
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--target` | Import path `module:func` (required) |
-| `--sizes` | Input sizes to test (required) |
+| `--sizes` | Input sizes to test (required for `run`) |
 | `--trials` | Runs per size, averaged (default: 3) |
 | `--warmup` | Warmup runs before timing (default: 0) |
 | `--verbose`, `-v` | Show progress |
@@ -409,6 +641,10 @@ bigocheck run --target MODULE:FUNC --sizes N1 N2 N3 [OPTIONS]
 | `--json` | JSON output for CI/CD |
 | `--plot` | Show plot (requires matplotlib) |
 | `--plot-save PATH` | Save plot to file |
+| `--html PATH` | Generate HTML report |
+| `--save-baseline PATH` | Save baseline for regression detection |
+| `--baseline PATH` | Baseline file for regression check |
+| `--threshold` | Slowdown threshold for regression (default: 0.2) |
 
 ---
 
@@ -425,6 +661,7 @@ bigocheck run --target MODULE:FUNC --sizes N1 N2 N3 [OPTIONS]
 | Cubic | O(n³) | Matrix multiplication |
 | Exponential | O(2ⁿ) | Naive Fibonacci |
 | Factorial | O(n!) | Permutations |
+| **Polynomial** | O(n^k) | Detected via `fit_polynomial()` |
 
 ---
 
@@ -437,6 +674,7 @@ from bigocheck import (
     # Core
     benchmark_function,    # Main benchmarking function
     fit_complexities,      # Fit measurements to complexity classes
+    fit_space_complexity,  # Fit memory to complexity classes
     complexity_basis,      # Get all complexity basis functions
     
     # Assertions
@@ -449,11 +687,52 @@ from bigocheck import (
     compare_functions,     # A/B comparison
     compare_to_baseline,   # Compare to baseline complexity
     
-    # Reports
+    # Reports (Markdown)
     generate_report,       # Generate markdown report
     generate_comparison_report,
     generate_verification_report,
     save_report,
+    
+    # Reports (HTML)
+    generate_html_report,  # Generate HTML report with charts
+    save_html_report,
+    
+    # Statistics
+    compute_significance,  # P-values for classification
+    SignificanceResult,
+    
+    # Regression Detection
+    save_baseline,         # Save baseline JSON
+    load_baseline,         # Load baseline JSON
+    detect_regression,     # Detect regressions
+    Baseline,
+    RegressionResult,
+    
+    # Case Analysis
+    analyze_cases,         # Best/worst/avg case
+    CasesAnalysis,
+    CaseResult,
+    
+    # Polynomial Fitting
+    fit_polynomial,        # Detect O(n^k)
+    fit_polynomial_space,
+    PolynomialFit,
+    
+    # Async Benchmarking
+    benchmark_async,       # Async version
+    run_benchmark_async,   # Sync wrapper for async
+    
+    # Amortized Analysis
+    analyze_amortized,     # Sequence analysis
+    analyze_sequence,
+    AmortizedResult,
+    
+    # Parallel Benchmarking
+    benchmark_parallel,    # Parallel execution
+    
+    # Interactive
+    start_repl,            # Start REPL
+    quick_check,           # One-liner check
     
     # Data Classes
     Analysis,
@@ -462,21 +741,6 @@ from bigocheck import (
     VerificationResult,
     ComparisonResult,
     ConfidenceResult,
-    
-    # Statistics
-    SignificanceResult,
-    compute_significance,
-    
-    # Regression
-    Baseline,
-    RegressionResult,
-    save_baseline,
-    load_baseline,
-    detect_regression,
-    
-    # Case Analysis
-    CasesAnalysis,
-    analyze_cases,
 )
 ```
 
@@ -487,21 +751,30 @@ from bigocheck import (
 ```
 bigocheck/
 ├── src/bigocheck/
-│   ├── __init__.py      # Package exports
-│   ├── core.py          # Benchmarking and fitting
-│   ├── cli.py           # Command-line interface
-│   ├── assertions.py    # Assertions and verification
-│   ├── compare.py       # A/B comparison
-│   ├── reports.py       # Report generation
-│   ├── statistics.py    # P-values and significance
-│   ├── regression.py    # Baseline save/load, regression detection
-│   ├── cases.py         # Best/worst/average case analysis
-│   ├── datagen.py       # Data generators
-│   ├── plotting.py      # Optional plotting
-│   └── pytest_plugin.py # pytest integration
-├── .github/workflows/   # CI/CD templates
-├── tests/               # Test suite
+│   ├── __init__.py       # Package exports (25+ functions)
+│   ├── core.py           # Benchmarking and fitting
+│   ├── cli.py            # CLI (run, regression, repl)
+│   ├── assertions.py     # @assert_complexity, verify_bounds
+│   ├── compare.py        # A/B comparison
+│   ├── reports.py        # Markdown report generation
+│   ├── html_report.py    # HTML report with SVG charts
+│   ├── statistics.py     # P-values and significance
+│   ├── regression.py     # Baseline save/load, regression detection
+│   ├── cases.py          # Best/worst/average case analysis
+│   ├── polynomial.py     # O(n^k) polynomial fitting
+│   ├── async_bench.py    # Async function benchmarking
+│   ├── amortized.py      # Amortized complexity analysis
+│   ├── parallel.py       # Parallel benchmarking
+│   ├── interactive.py    # REPL mode
+│   ├── datagen.py        # Data generators
+│   ├── plotting.py       # Optional matplotlib plots
+│   ├── pytest_plugin.py  # pytest integration
+│   └── pre_commit.py     # Pre-commit hook template
+├── .github/workflows/    # CI/CD templates
+├── docs/                 # Documentation assets
+├── tests/                # Test suite (77+ tests)
 ├── pyproject.toml
+├── CITATION.cff
 └── LICENSE
 ```
 
@@ -513,6 +786,19 @@ bigocheck/
 pip install -e '.[dev]'
 pytest -v
 ```
+
+**Test Coverage:**
+- Core benchmarking and fitting
+- All complexity assertions
+- Comparison and reports
+- Statistical significance
+- Regression detection
+- Case analysis
+- Polynomial fitting
+- Async benchmarking
+- Amortized analysis
+- Parallel benchmarking
+- HTML report generation
 
 ---
 
