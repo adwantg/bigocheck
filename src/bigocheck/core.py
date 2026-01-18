@@ -39,6 +39,7 @@ class Analysis:
     measurements: List[Measurement]
     fits: List[FitResult]
     best_label: str
+    name: Optional[str] = None
     # Space complexity (only populated when memory=True)
     space_fits: List[FitResult] = field(default_factory=list)
     space_label: Optional[str] = None
@@ -237,16 +238,19 @@ def benchmark_function(
     # Fit time complexity
     fits, best_label = fit_complexities(measurements)
     
+    
     # Fit space complexity (if memory tracking was enabled)
     space_fits: List[FitResult] = []
     space_label: Optional[str] = None
     if memory:
-        space_fits, space_label = fit_space_complexity(measurements)
-    
+        space_fits, space_best = fit_space_complexity(measurements)
+        space_label = space_best
+
     return Analysis(
         measurements=measurements,
         fits=fits,
         best_label=best_label,
+        name=getattr(func, "__name__", str(func)),
         space_fits=space_fits,
         space_label=space_label,
     )

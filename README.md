@@ -992,6 +992,61 @@ Note:
 ```
 
 ---
+
+### 3️⃣3️⃣ Hybrid AI-Assisted Analysis
+
+Combine empirical measurements with static AST analysis (loops/recursion counting) for hybrid verification.
+
+```python
+from bigocheck import predict_complexity, verify_hybrid, benchmark_function
+
+def fast_func(n):
+    for i in range(n):
+        pass
+
+# 1. Static Prediction (Zero-Runtime)
+prediction = predict_complexity(fast_func)
+print(f"Predicted: {prediction['prediction']}")  # "O(n)"
+print(f"Reason:    {prediction['reason']}")      # "Single loop detected"
+
+# 2. Hybrid Verification (Compare Static vs Dynamic)
+analysis = benchmark_function(fast_func, sizes=[100, 1000])
+result = verify_hybrid(fast_func, analysis.best_label)
+print(result) # "✅ Match! Static (O(n)) aligns with Empirical (O(n))"
+```
+
+---
+
+### 3️⃣4️⃣ Static Web Dashboard
+
+Generate a self-contained HTML dashboard folder to host on GitHub Pages.
+
+```python
+from bigocheck import benchmark_function, generate_dashboard
+
+# Run multiple benchmarks
+b1 = benchmark_function(func1, sizes=[100, 1000])
+b2 = benchmark_function(func2, sizes=[100, 1000])
+
+# Generate static site
+generate_dashboard([b1, b2], output_dir="docs/dashboard")
+# ✅ Dashboard generated at: docs/dashboard/index.html
+```
+
+---
+
+### 3️⃣5️⃣ Cloud Runner Generator
+
+Generate a GitHub Actions workflow to run benchmarks in the cloud (consistent hardware).
+
+```python
+from bigocheck import generate_github_action
+
+# Creates .github/workflows/bigocheck_benchmark.yml
+generate_github_action()
+```
+
+---
 ## 🖥️ CLI Reference
 
 ```bash
