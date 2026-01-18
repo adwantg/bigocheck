@@ -138,7 +138,7 @@ class TestThresholdAlerts:
     
     def test_assert_threshold_decorator(self):
         """Test assert_threshold decorator works."""
-        @assert_threshold("O(n^2)", sizes=[100, 200])
+        @assert_threshold("O(n^2)", sizes=[1000, 5000, 10000])
         def simple(n):
             return sum(range(n))
         

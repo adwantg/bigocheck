@@ -992,6 +992,61 @@ Note:
 ```
 
 ---
+
+### 3️⃣3️⃣ Hybrid AI-Assisted Analysis
+
+Combine empirical measurements with static AST analysis (loops/recursion counting) for hybrid verification.
+
+```python
+from bigocheck import predict_complexity, verify_hybrid, benchmark_function
+
+def fast_func(n):
+    for i in range(n):
+        pass
+
+# 1. Static Prediction (Zero-Runtime)
+prediction = predict_complexity(fast_func)
+print(f"Predicted: {prediction['prediction']}")  # "O(n)"
+print(f"Reason:    {prediction['reason']}")      # "Single loop detected"
+
+# 2. Hybrid Verification (Compare Static vs Dynamic)
+analysis = benchmark_function(fast_func, sizes=[100, 1000])
+result = verify_hybrid(fast_func, analysis.best_label)
+print(result) # "✅ Match! Static (O(n)) aligns with Empirical (O(n))"
+```
+
+---
+
+### 3️⃣4️⃣ Static Web Dashboard
+
+Generate a self-contained HTML dashboard folder to host on GitHub Pages.
+
+```python
+from bigocheck import benchmark_function, generate_dashboard
+
+# Run multiple benchmarks
+b1 = benchmark_function(func1, sizes=[100, 1000])
+b2 = benchmark_function(func2, sizes=[100, 1000])
+
+# Generate static site
+generate_dashboard([b1, b2], output_dir="docs/dashboard")
+# ✅ Dashboard generated at: docs/dashboard/index.html
+```
+
+---
+
+### 3️⃣5️⃣ Cloud Runner Generator
+
+Generate a GitHub Actions workflow to run benchmarks in the cloud (consistent hardware).
+
+```python
+from bigocheck import generate_github_action
+
+# Creates .github/workflows/bigocheck_benchmark.yml
+generate_github_action()
+```
+
+---
 ## 🖥️ CLI Reference
 
 ```bash
@@ -1001,6 +1056,8 @@ bigocheck repl
 bigocheck explain "COMPLEXITY"
 bigocheck recommend --target MODULE:FUNC [OPTIONS]
 bigocheck compare --targets M:F1 M:F2 --sizes N1 N2 [OPTIONS]
+bigocheck dashboard --targets M:F1 M:F2 --output DIR [OPTIONS]
+bigocheck cloud
 ```
 
 | Option | Description |
@@ -1019,7 +1076,9 @@ bigocheck compare --targets M:F1 M:F2 --sizes N1 N2 [OPTIONS]
 | `--baseline PATH` | Baseline file for regression check |
 | `--threshold` | Slowdown threshold for regression (default: 0.2) |
 | `--time-budget` | Time budget for size recommendation (default: 5.0) |
-| `--targets` | List of targets for comparison (required for `compare`) |
+| `--targets` | List of targets for comparison/dashboard (required) |
+| `--output` | Output directory for dashboard (default: dashboard) |
+| `--sizes` | Sizes (optional for dashboard/regression) |
 
 ---
 
@@ -1153,6 +1212,12 @@ from bigocheck import (
     save_badge,
     generate_badge_url,    # shields.io URL
     
+    # Differentiation (v0.7.0)
+    predict_complexity,    # AST Static analysis
+    verify_hybrid,         # Hybrid (Static + Dynamic)
+    generate_dashboard,    # Generate HTML dashboard
+    generate_github_action,# Generate Cloud Runner
+    
     # Data Classes
     Analysis,
     Measurement,
@@ -1208,6 +1273,32 @@ bigocheck/
 ├── CITATION.cff
 └── LICENSE
 ```
+
+---
+
+
+## 🔍 Dependency Transparency
+
+We claim **Zero Dependencies**, which means we do not require any third-party packages (like `numpy`, `pandas`, or `scipy`) to run. We rely exclusively on Python's robust standard library.
+
+Here is a transparent breakdown of the internal standard modules we use and why:
+
+| Module | Purpose | Feature |
+|--------|---------|---------|
+| `ast` | Abstract Syntax Tree parsing | **Static Complexity Analysis** (AI) |
+| `timeit` / `time` | High-precision timing | **Benchmarking** |
+| `tracemalloc` | Memory allocation tracking | **Space Complexity** |
+| `statistics` | Mean, Stdev, Linear Regression | **Fitting & P-values** |
+| `math` | Log, Sqrt, Factorial | **Basis Functions** |
+| `argparse` | CLI argument parsing | **Command Line Interface** |
+| `json` | Data serialization | **Exports & Baselines** |
+| `asyncio` | Event loop management | **Async Benchmarking** |
+| `concurrent.futures` | Process pools | **Parallel Benchmarking** |
+| `inspect` | Source code introspection | **Docstring Generation** |
+| `importlib` | Dynamic imports | **Target Resolution** (`module:func`) |
+| `gc` | Garbage collection control | **Stability & Memory Accuracy** |
+
+*Note: `matplotlib` is listed as an optional dev-dependency only for the plotting feature.*
 
 ---
 

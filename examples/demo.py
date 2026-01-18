@@ -82,6 +82,38 @@ def main():
     print(f"Sort complexity: {analysis.best_label}")
     print("-" * 40 + "\n")
     
+    print("=== 7. Hybrid AI-Assisted Analysis ===")
+    from bigocheck.ast_analysis import predict_complexity, verify_hybrid
+    
+    def nested_func(n):
+        for i in range(n):
+            for j in range(n):
+                pass
+    
+    print("Static Prediction (Zero-Runtime):")
+    pred = predict_complexity(nested_func)
+    print(f"Prediction: {pred['prediction']}")
+    print(f"Reason:     {pred['reason']}")
+    
+    print("\nHybrid Verification:")
+    # We cheat a bit here by passing the known empirical result to avoid waiting
+    result = verify_hybrid(nested_func, "O(n^2)") 
+    print(result)
+    print("-" * 40 + "\n")
+
+    print("=== 8. Static Web Dashboard ===")
+    from bigocheck.dashboard import generate_dashboard
+    # Use previous analysis from Linear Algo section
+    print("Generating dashboard for linear function benchmark...")
+    generate_dashboard([analysis], output_dir="bigocheck_dashboard")
+    print("-" * 40 + "\n")
+
+    print("=== 9. Cloud Runner Generator ===")
+    from bigocheck.cloud import generate_github_action
+    print("Generating GitHub Action workflow...")
+    generate_github_action()
+    print("-" * 40 + "\n")
+    
     print("✨ Demo complete!")
 
 if __name__ == "__main__":
