@@ -42,8 +42,28 @@ Thumbs.db
 *.log
 
 # Generated files
-example_report.html
+*.html
 *.baseline.json
+*.csv
+*.json
+!package.json
+!tsconfig.json
+!pyproject.toml
+!*.baseline.json
+!baseline_*.json
+
+# Plots and Images
+*.png
+*.svg
+*.pdf
+
+# Reports
+*_report.md
+analysis_report.md
+
+# Mypy
+.mypy_cache/
 
 # Release script (contains local paths)
 release.sh
+

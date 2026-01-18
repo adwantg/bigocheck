@@ -22,6 +22,15 @@ Empirical complexity regression checker: run a target function across input size
 | **🔀 Git Commit Tracking** | Track complexity across commits, binary search for regression |
 | **⚠️ Instability Detection** | Detect noisy/unreliable benchmark results |
 | **🏷️ Badge Generation** | SVG badges for READMEs (color-coded by complexity) |
+| **📓 Jupyter Integration** | Rich HTML display in notebooks |
+| **📤 CSV/JSON Export** | Export results to CSV, JSON, markdown |
+| **🚨 Threshold Alerts** | Alert when complexity exceeds threshold (CI/CD) |
+| **📖 Complexity Explanations** | Human-readable explanations of what O(n log n) means |
+| **📏 Input Size Recommendations** | Smart input size suggestions for better benchmarks |
+| **🏆 Multi-Algorithm Comparison** | Compare N algorithms at once with rankings |
+| **📐 Bounds Checking** | Assert O(log n) ≤ f ≤ O(n²) ranges |
+| **⚙️ Benchmark Profiles** | Presets: fast, balanced, accurate, thorough |
+| **📝 Auto Documentation** | Auto-generate docstrings with complexity info |
 | **📊 Statistical Significance** | P-values to validate complexity classification |
 | **🔄 Regression Detection** | CLI: `bigocheck regression --baseline file.json` |
 | **📉 Best/Worst/Avg Cases** | Analyze with sorted, reversed, and random inputs |
@@ -60,7 +69,16 @@ pip install -e '.[dev]'
 
 ---
 
+---
+
 ## 🚀 Quick Start
+
+### 🏃 Examples
+
+Running the full feature demo:
+```bash
+python examples/demo.py
+```
 
 ### CLI Usage
 
@@ -723,12 +741,266 @@ url = generate_badge_url("O(n log n)")
 # https://img.shields.io/badge/complexity-O%28n%20log%20n%29-fe7d37
 ```
 
+---
+
+### 2️⃣4️⃣ Jupyter Integration
+
+Rich HTML display in Jupyter notebooks.
+
+```python
+from bigocheck import benchmark_function, enable_jupyter_display
+
+# Enable rich display (call once)
+enable_jupyter_display()
+
+# Now Analysis objects render as rich HTML
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000])
+analysis  # Shows rich HTML in Jupyter
+
+# Or display explicitly
+from bigocheck import display_analysis, display_comparison
+
+display_analysis(analysis)
+
+# Compare multiple algorithms
+display_comparison({
+    "bubble_sort": analysis1,
+    "quick_sort": analysis2,
+})
+```
+
+---
+
+### 2️⃣5️⃣ CSV/JSON Export
+
+Export results to various formats.
+
+```python
+from bigocheck import benchmark_function, to_csv, to_json, to_markdown_table
+
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000])
+
+# Export to CSV
+csv_str = to_csv(analysis, "results.csv")
+
+# Export to JSON
+json_str = to_json(analysis, "results.json")
+
+# Export as markdown table
+md = to_markdown_table(analysis)
+print(md)
+# **Time Complexity:** O(n)
+# 
+# | Size | Time (s) | Std Dev | Memory |
+# |------|----------|---------|--------|
+# | 100 | 0.000010 | ±0.000001 | - |
+```
+
+---
+
+### 2️⃣6️⃣ Threshold Alerts
+
+Alert when complexity exceeds acceptable thresholds (great for CI/CD).
+
+```python
+```python
+from bigocheck import check_threshold, assert_threshold, monitor_complexity
+
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000])
+
+# Check against threshold
+result = check_threshold(analysis, max_complexity="O(n log n)")
+if not result.passed:
+    print(f"❌ {result.message}")
+
+# Use as decorator
+@assert_threshold("O(n)")
+def my_algorithm(n):
+    return sum(range(n))
+
+my_algorithm(100)  # Raises ComplexityThresholdError if O(n) exceeded
+
+# Monitor with warnings
+analysis = monitor_complexity(
+    my_func,
+    sizes=[100, 500, 1000],
+    max_complexity="O(n)",
+    on_exceed="warn"  # or "error" or "ignore"
+)
+```
+
+---
+
+### 2️⃣7️⃣ Complexity Explanations
+
+Get human-readable explanations of complexity classes.
+
+**CLI:**
+```bash
+bigocheck explain "O(n log n)"
+```
+
+**Library:**
+```python
+from bigocheck import explain_complexity
+
+print(explain_complexity("O(n log n)"))
+```
+
+**Output:**
+```
+O(n log n) - Linearithmic
+
+Description: Slightly more than linear, common in efficient sorting.
+Example: Merge sort, heap sort, quick sort (average)
+Scaling: Good - optimal for comparison-based sorting
+Real World: Sorting a playlist by song name
+```
+
+---
+
+### 2️⃣8️⃣ Input Size Recommendations
+
+Get smart suggestions for input sizes based on function speed.
+
+**CLI:**
+```bash
+bigocheck recommend --target mymodule:my_func
+```
+
+**Library:**
+```python
+from bigocheck import suggest_sizes, format_recommendation
+
+rec = suggest_sizes(my_func, time_budget=1.0)
+print(format_recommendation(rec))
+```
+
+**Output:**
+```
+Input Size Recommendation
+========================
+Sizes: [1000, 2500, 5000, 10000, 25000, 50000, 100000]
+Reason: Very fast function - using larger input sizes.
+Estimated Time: 0.4s
+Confidence: high
+```
+
+---
+
+### 2️⃣9️⃣ Multi-Algorithm Comparison
+
+Compare multiple algorithms at once and rank them.
+
+**CLI:**
+```bash
+bigocheck compare --targets mymodule:bubble_sort mymodule:quick_sort --sizes 100 500 1000
+```
+
+**Library:**
+```python
+from bigocheck import compare_algorithms
+
+result = compare_algorithms(
+    {"bubble_sort": bubble_sort, "quick_sort": quick_sort},
+    sizes=[100, 500, 1000],
+)
+print(result.summary_table)
+```
+
+**Output:**
+```
+Algorithm Comparison Summary
+======================================================================
+
+Rank   Algorithm            Time Complexity Avg Time    
+----------------------------------------------------------------------
+🥇 1   quick_sort           O(log n)        0.000002s
+🥈 2   bubble_sort          O(n^2)          0.000649s
+
+Winner (by complexity): quick_sort (O(log n))
+```
+
+---
+
+### 3️⃣0️⃣ Bounds Checking
+
+Assert that complexity falls within a specific range (e.g., at least O(1) but no worse than O(n)).
+
+```python
+from bigocheck import check_bounds, assert_bounds
+
+# Manual check
+result = check_bounds(analysis, lower="O(1)", upper="O(n)")
+print(result.message)
+# ✓ Complexity in bounds: O(1) ≤ O(log n) ≤ O(n)
+
+# Decorator assertion
+@assert_bounds(lower="O(1)", upper="O(n)")
+def fast_func(n):
+    return sum(range(n))
+```
+
+---
+
+### 3️⃣1️⃣ Benchmark Profiles
+
+Use preset configurations for common scenarios.
+
+```python
+from bigocheck import benchmark_with_profile, profile_decorator
+
+# Use a preset profile
+analysis = benchmark_with_profile(my_func, profile="accurate")
+# Profiles: fast, balanced, accurate, thorough, large, small
+
+# Decorator usage
+@profile_decorator("fast")
+def check_me(n):
+    pass
+
+check_me(100)  # Prints: 📊 check_me: O(1)
+```
+
+---
+
+### 3️⃣2️⃣ Auto Documentation
+
+Automatically generate docstrings with empirical complexity.
+
+```python
+from bigocheck import document_complexity
+
+@document_complexity()
+def my_sort(n):
+    """Sorts a list of n elements."""
+    return sorted(range(n))
+
+my_sort(100)  # Runs benchmark on first call
+print(my_sort.__doc__)
+```
+
+**Output:**
+```
+Sorts a list of n elements.
+
+Complexity:
+    Time: O(n log n)
+
+Note:
+    Complexity measured empirically by bigocheck.
+```
+
+---
 ## 🖥️ CLI Reference
 
 ```bash
 bigocheck run --target MODULE:FUNC --sizes N1 N2 N3 [OPTIONS]
 bigocheck regression --target MODULE:FUNC --baseline FILE [OPTIONS]
 bigocheck repl
+bigocheck explain "COMPLEXITY"
+bigocheck recommend --target MODULE:FUNC [OPTIONS]
+bigocheck compare --targets M:F1 M:F2 --sizes N1 N2 [OPTIONS]
 ```
 
 | Option | Description |
@@ -746,6 +1018,8 @@ bigocheck repl
 | `--save-baseline PATH` | Save baseline for regression detection |
 | `--baseline PATH` | Baseline file for regression check |
 | `--threshold` | Slowdown threshold for regression (default: 0.2) |
+| `--time-budget` | Time budget for size recommendation (default: 5.0) |
+| `--targets` | List of targets for comparison (required for `compare`) |
 
 ---
 
@@ -786,6 +1060,33 @@ from bigocheck import (
     
     # Comparison
     compare_functions,     # A/B comparison
+    compare_algorithms,    # Multi-algorithm comparison
+    
+    # Reports
+    generate_report,       # Generate markdown report
+    save_report,           # Save markdown report
+    generate_html_report,  # Generate HTML report
+    
+    # New Features (v0.7.0)
+    explain_complexity,    # Explain complexity class
+    suggest_sizes,         # Recommend input sizes
+    check_bounds,          # Check complexity bounds
+    benchmark_with_profile,# Run with preset profile
+    document_complexity,   # Auto-document complexity
+    
+    # Jupyter
+    enable_jupyter_display, # Enable rich notebook display
+    display_analysis,       # Display analysis object
+    
+    # Export
+    to_csv,
+    to_json,
+    to_markdown_table,
+    
+    # Alerts
+    check_threshold,
+    assert_threshold,
+    monitor_complexity,
     compare_to_baseline,   # Compare to baseline complexity
     
     # Reports (Markdown)
@@ -869,7 +1170,7 @@ from bigocheck import (
 ```
 bigocheck/
 ├── src/bigocheck/
-│   ├── __init__.py       # Package exports (40+ functions)
+│   ├── __init__.py       # Package exports (80+ functions)
 │   ├── core.py           # Benchmarking and fitting
 │   ├── cli.py            # CLI (run, regression, repl)
 │   ├── assertions.py     # @assert_complexity, verify_bounds
@@ -887,13 +1188,22 @@ bigocheck/
 │   ├── git_tracking.py   # Git commit tracking
 │   ├── stability.py      # Instability detection
 │   ├── badges.py         # Badge generation
+│   ├── jupyter.py        # Jupyter notebook integration
+│   ├── export.py         # CSV/JSON export
+│   ├── alerts.py         # Threshold alerts
+│   ├── explanations.py   # Complexity explanations
+│   ├── recommendations.py # Size recommendations
+│   ├── multi_compare.py  # Multi-algorithm comparison
+│   ├── bounds.py         # Bounds checking
+│   ├── profiles.py       # Benchmark profiles
+│   ├── docgen.py         # Documentation generation
 │   ├── datagen.py        # Data generators
 │   ├── plotting.py       # Optional matplotlib plots
 │   ├── pytest_plugin.py  # pytest integration
 │   └── pre_commit.py     # Pre-commit hook template
 ├── .github/workflows/    # CI/CD templates
 ├── docs/                 # Documentation assets
-├── tests/                # Test suite (78+ tests)
+├── tests/                # Test suite (100+ tests)
 ├── pyproject.toml
 ├── CITATION.cff
 └── LICENSE
@@ -923,6 +1233,15 @@ pytest -v
 - Git commit tracking
 - Instability detection
 - Badge generation
+- Jupyter integration
+- CSV/JSON export
+- Threshold alerts
+- Complexity explanations
+- Input size recommendations
+- Multi-algorithm comparison
+- Bounds checking
+- Benchmark profiles
+- Documentation generation
 
 ---
 

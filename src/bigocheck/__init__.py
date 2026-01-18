@@ -128,6 +128,78 @@ from .badges import (
     generate_badge_url,
 )
 
+# Jupyter integration
+from .jupyter import (
+    enable_jupyter_display,
+    display_analysis,
+    display_comparison,
+)
+
+# Export functionality
+from .export import (
+    to_csv,
+    to_markdown_table,
+    to_dict,
+    to_json,
+)
+
+# Threshold alerts
+from .alerts import (
+    ComplexityThresholdError,
+    ThresholdResult,
+    check_threshold,
+    assert_threshold,
+    monitor_complexity,
+)
+
+# Explanations
+from .explanations import (
+    explain_complexity,
+    get_complexity_comparison,
+    suggest_improvement,
+    format_complexity_report,
+)
+
+# Recommendations
+from .recommendations import (
+    SizeRecommendation,
+    suggest_sizes,
+    auto_calibrate,
+    detect_warmup_needed,
+)
+
+# Multi-algorithm comparison
+from .multi_compare import (
+    AlgorithmResult,
+    ComparisonSummary,
+    compare_algorithms,
+    generate_markdown_comparison,
+)
+
+# Bounds checking
+from .bounds import (
+    ComplexityBoundsError,
+    BoundsResult,
+    check_bounds,
+    assert_bounds,
+)
+
+# Benchmark profiles
+from .profiles import (
+    BenchmarkProfile,
+    get_profile,
+    benchmark_with_profile,
+    profile_decorator,
+    list_profiles,
+)
+
+# Documentation generation
+from .docgen import (
+    generate_complexity_docstring,
+    document_complexity,
+    generate_readme_entry,
+)
+
 __all__ = [
     # Version
     "__version__",
@@ -208,7 +280,54 @@ __all__ = [
     "generate_dual_badge",
     "save_badge",
     "generate_badge_url",
+    # Jupyter
+    "enable_jupyter_display",
+    "display_analysis",
+    "display_comparison",
+    # Export
+    "to_csv",
+    "to_markdown_table",
+    "to_dict",
+    "to_json",
+    # Alerts
+    "ComplexityThresholdError",
+    "ThresholdResult",
+    "check_threshold",
+    "assert_threshold",
+    "monitor_complexity",
+    # Explanations
+    "explain_complexity",
+    "get_complexity_comparison",
+    "suggest_improvement",
+    "format_complexity_report",
+    # Recommendations
+    "SizeRecommendation",
+    "suggest_sizes",
+    "auto_calibrate",
+    "detect_warmup_needed",
+    # Multi-compare
+    "AlgorithmResult",
+    "ComparisonSummary",
+    "compare_algorithms",
+    "generate_markdown_comparison",
+    # Bounds
+    "ComplexityBoundsError",
+    "BoundsResult",
+    "check_bounds",
+    "assert_bounds",
+    # Profiles
+    "BenchmarkProfile",
+    "get_profile",
+    "benchmark_with_profile",
+    "profile_decorator",
+    "list_profiles",
+    # Docgen
+    "generate_complexity_docstring",
+    "document_complexity",
+    "generate_readme_entry",
 ]
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
+
+
 
