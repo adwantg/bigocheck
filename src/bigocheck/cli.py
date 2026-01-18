@@ -204,9 +204,35 @@ Examples:
         "--json",
         action="store_true",
         help="Output JSON summary",
+    comp_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON summary",
     )
 
-    return parser.parse_args(argv)
+    # Dashboard command
+    dash_parser = sub.add_parser("dashboard", help="Generate static web dashboard.")
+    dash_parser.add_argument(
+        "--targets",
+        required=True,
+        nargs="+",
+        help="List of functions to benchmark (module:func)",
+    )
+    dash_parser.add_argument(
+        "--output",
+        default="dashboard",
+        help="Output directory (default: dashboard)",
+    )
+    dash_parser.add_argument(
+        "--sizes",
+        nargs="+",
+        type=int,
+        default=[100, 500, 1000],
+        help="Input sizes to benchmark",
+    )
+
+    # Cloud command
+    sub.add_parser("cloud", help="Generate GitHub Actions workflow.")
 
 
 def _analysis_to_json(analysis: Analysis) -> str:
@@ -417,6 +443,33 @@ def main(argv: List[str] | None = None) -> None:
             print(json.dumps(data, indent=2))
         else:
             print("\n" + result.summary_table)
+
+    elif args.command == "dashboard":
+        targets = []
+        for t in args.targets:
+            try:
+                func = resolve_callable(t)
+                targets.append((t, func))
+            except (ValueError, ModuleNotFoundError, AttributeError) as e:
+                print(f"Error resolving {t}: {e}", file=sys.stderr)
+                sys.exit(1)
+        
+        from .dashboard import generate_dashboard
+        
+        analyses = []
+        print(f"Benchmarking {len(targets)} targets for dashboard...", file=sys.stderr)
+        for name, func in targets:
+            print(f"  Running {name}...", file=sys.stderr)
+            analysis = benchmark_function(func, sizes=args.sizes)
+            analysis.name = name  # Ensure name is set
+            analyses.append(analysis)
+            
+        generate_dashboard(analyses, output_dir=args.output)
+        print(f"\n✅ Dashboard generated at: {args.output}/index.html")
+
+    elif args.command == "cloud":
+        from .cloud import generate_github_action
+        generate_github_action()
 
 
 if __name__ == "__main__":

@@ -1056,6 +1056,8 @@ bigocheck repl
 bigocheck explain "COMPLEXITY"
 bigocheck recommend --target MODULE:FUNC [OPTIONS]
 bigocheck compare --targets M:F1 M:F2 --sizes N1 N2 [OPTIONS]
+bigocheck dashboard --targets M:F1 M:F2 --output DIR [OPTIONS]
+bigocheck cloud
 ```
 
 | Option | Description |
@@ -1074,7 +1076,9 @@ bigocheck compare --targets M:F1 M:F2 --sizes N1 N2 [OPTIONS]
 | `--baseline PATH` | Baseline file for regression check |
 | `--threshold` | Slowdown threshold for regression (default: 0.2) |
 | `--time-budget` | Time budget for size recommendation (default: 5.0) |
-| `--targets` | List of targets for comparison (required for `compare`) |
+| `--targets` | List of targets for comparison/dashboard (required) |
+| `--output` | Output directory for dashboard (default: dashboard) |
+| `--sizes` | Sizes (optional for dashboard/regression) |
 
 ---
 
@@ -1208,6 +1212,12 @@ from bigocheck import (
     save_badge,
     generate_badge_url,    # shields.io URL
     
+    # Differentiation (v0.7.0)
+    predict_complexity,    # AST Static analysis
+    verify_hybrid,         # Hybrid (Static + Dynamic)
+    generate_dashboard,    # Generate HTML dashboard
+    generate_github_action,# Generate Cloud Runner
+    
     # Data Classes
     Analysis,
     Measurement,
@@ -1263,6 +1273,32 @@ bigocheck/
 ├── CITATION.cff
 └── LICENSE
 ```
+
+---
+
+
+## 🔍 Dependency Transparency
+
+We claim **Zero Dependencies**, which means we do not require any third-party packages (like `numpy`, `pandas`, or `scipy`) to run. We rely exclusively on Python's robust standard library.
+
+Here is a transparent breakdown of the internal standard modules we use and why:
+
+| Module | Purpose | Feature |
+|--------|---------|---------|
+| `ast` | Abstract Syntax Tree parsing | **Static Complexity Analysis** (AI) |
+| `timeit` / `time` | High-precision timing | **Benchmarking** |
+| `tracemalloc` | Memory allocation tracking | **Space Complexity** |
+| `statistics` | Mean, Stdev, Linear Regression | **Fitting & P-values** |
+| `math` | Log, Sqrt, Factorial | **Basis Functions** |
+| `argparse` | CLI argument parsing | **Command Line Interface** |
+| `json` | Data serialization | **Exports & Baselines** |
+| `asyncio` | Event loop management | **Async Benchmarking** |
+| `concurrent.futures` | Process pools | **Parallel Benchmarking** |
+| `inspect` | Source code introspection | **Docstring Generation** |
+| `importlib` | Dynamic imports | **Target Resolution** (`module:func`) |
+| `gc` | Garbage collection control | **Stability & Memory Accuracy** |
+
+*Note: `matplotlib` is listed as an optional dev-dependency only for the plotting feature.*
 
 ---
 
