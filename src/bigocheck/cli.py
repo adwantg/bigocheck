@@ -158,6 +158,54 @@ Examples:
     # REPL command
     sub.add_parser("repl", help="Start interactive REPL mode.")
 
+    # Explain command
+    explain_parser = sub.add_parser("explain", help="Explain a complexity class.")
+    explain_parser.add_argument(
+        "complexity",
+        help="Complexity label (e.g., 'O(n log n)')",
+    )
+
+    # Recommend command
+    rec_parser = sub.add_parser("recommend", help="Recommend input sizes for a function.")
+    rec_parser.add_argument(
+        "--target",
+        required=True,
+        help="Import path in the form module:func",
+    )
+    rec_parser.add_argument(
+        "--time-budget",
+        type=float,
+        default=5.0,
+        help="Maximum time budget in seconds (default: 5.0)",
+    )
+
+    # Compare command
+    comp_parser = sub.add_parser("compare", help="Compare multiple algorithms.")
+    comp_parser.add_argument(
+        "--targets",
+        required=True,
+        nargs="+",
+        help="List of functions to compare (module:func)",
+    )
+    comp_parser.add_argument(
+        "--sizes",
+        required=True,
+        nargs="+",
+        type=int,
+        help="Input sizes to benchmark",
+    )
+    comp_parser.add_argument(
+        "--trials",
+        type=int,
+        default=3,
+        help="Number of trials per size",
+    )
+    comp_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON summary",
+    )
+
     return parser.parse_args(argv)
 
 
@@ -318,6 +366,57 @@ def main(argv: List[str] | None = None) -> None:
     elif args.command == "repl":
         from .interactive import start_repl
         start_repl()
+
+    elif args.command == "explain":
+        from .explanations import explain_complexity
+        print(explain_complexity(args.complexity))
+
+    elif args.command == "recommend":
+        try:
+            func = resolve_callable(args.target)
+        except (ValueError, ModuleNotFoundError, AttributeError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        
+        from .recommendations import suggest_sizes, format_recommendation
+        
+        print(f"Analyzing {args.target} for optimal sizes...")
+        rec = suggest_sizes(func, time_budget=args.time_budget)
+        print("\n" + format_recommendation(rec))
+
+    elif args.command == "compare":
+        targets = {}
+        for t in args.targets:
+            try:
+                func = resolve_callable(t)
+                targets[t] = func
+            except (ValueError, ModuleNotFoundError, AttributeError) as e:
+                print(f"Error resolving {t}: {e}", file=sys.stderr)
+                sys.exit(1)
+        
+        from .multi_compare import compare_algorithms, generate_markdown_comparison
+        
+        print(f"Comparing {len(targets)} algorithms on sizes {args.sizes}...", file=sys.stderr)
+        result = compare_algorithms(targets, sizes=args.sizes, trials=args.trials)
+        
+        if args.json:
+            # Simple JSON output
+            data = {
+                "winner": result.winner,
+                "fastest": result.fastest,
+                "results": [
+                    {
+                        "name": r.name,
+                        "complexity": r.time_complexity,
+                        "avg_time": r.avg_time,
+                        "rank": r.rank
+                    }
+                    for r in result.results
+                ]
+            }
+            print(json.dumps(data, indent=2))
+        else:
+            print("\n" + result.summary_table)
 
 
 if __name__ == "__main__":
