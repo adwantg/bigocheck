@@ -1,0 +1,12 @@
+# Author: gadwant
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+*.pyo
+*.pyd
+*.log
+dist/
+build/
+*.egg-info/
+.DS_Store
