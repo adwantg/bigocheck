@@ -1,7 +1,7 @@
 # Author: gadwant
 [project]
 name = "bigocheck"
-version = "0.5.0"
+version = "0.6.0"
 description = "Zero-dependency empirical Big-O complexity checker for Python with CLI, assertions, and pytest integration"
 readme = "README.md"
 requires-python = ">=3.9"

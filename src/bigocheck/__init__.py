@@ -105,6 +105,29 @@ from .interactive import (
     quick_check,
 )
 
+# Git tracking
+from .git_tracking import (
+    CommitResult,
+    TrackingResult,
+    track_commits,
+    find_regression_commit,
+)
+
+# Stability detection
+from .stability import (
+    StabilityResult,
+    compute_stability,
+    format_stability,
+)
+
+# Badge generation
+from .badges import (
+    generate_badge,
+    generate_dual_badge,
+    save_badge,
+    generate_badge_url,
+)
+
 __all__ = [
     # Version
     "__version__",
@@ -171,6 +194,21 @@ __all__ = [
     # Interactive
     "start_repl",
     "quick_check",
+    # Git Tracking
+    "CommitResult",
+    "TrackingResult",
+    "track_commits",
+    "find_regression_commit",
+    # Stability
+    "StabilityResult",
+    "compute_stability",
+    "format_stability",
+    # Badges
+    "generate_badge",
+    "generate_dual_badge",
+    "save_badge",
+    "generate_badge_url",
 ]
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
+
