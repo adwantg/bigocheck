@@ -19,6 +19,9 @@ Empirical complexity regression checker: run a target function across input size
 | **🧮 Time Complexity** | Fits to 9 classes: O(1), O(log n), O(√n), O(n), O(n log n), O(n²), O(n³), O(2ⁿ), O(n!) |
 | **📐 Space Complexity** | Classifies memory usage to complexity classes |
 | **📏 Polynomial Fitting** | Detect O(n^k) for arbitrary k (e.g., O(n^2.34)) |
+| **🔀 Git Commit Tracking** | Track complexity across commits, binary search for regression |
+| **⚠️ Instability Detection** | Detect noisy/unreliable benchmark results |
+| **🏷️ Badge Generation** | SVG badges for READMEs (color-coded by complexity) |
 | **📊 Statistical Significance** | P-values to validate complexity classification |
 | **🔄 Regression Detection** | CLI: `bigocheck regression --baseline file.json` |
 | **📉 Best/Worst/Avg Cases** | Analyze with sorted, reversed, and random inputs |
@@ -622,6 +625,104 @@ print(result)  # "O(n)"
 
 ---
 
+### 2️⃣1️⃣ Git Commit Tracking
+
+Track complexity changes across git commits.
+
+```python
+from bigocheck import track_commits, find_regression_commit
+
+# Track across specific commits
+result = track_commits(
+    target="mymodule:myfunc",
+    commits=["v1.0", "v1.5", "v2.0"],
+    sizes=[100, 500, 1000],
+)
+
+print(result.summary)
+# Tracked 3 commits:
+#   abc1234: O(n) (Initial implementation...)
+#   def5678: O(n) (Optimized loop...)
+#   ghi9012: O(n^2) (Added feature X...)
+#
+# ❌ Regression detected at ghi9012:
+#    O(n) → O(n^2)
+
+# Binary search for exact regression commit
+bad_commit = find_regression_commit(
+    target="mymodule:myfunc",
+    good_commit="v1.0",
+    bad_commit="v2.0",
+    sizes=[100, 500, 1000],
+)
+print(f"First bad commit: {bad_commit}")
+```
+
+---
+
+### 2️⃣2️⃣ Instability Detection
+
+Detect when benchmark results are unreliable.
+
+```python
+from bigocheck import benchmark_function, compute_stability, format_stability
+
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000], trials=5)
+stability = compute_stability(analysis)
+
+print(format_stability(stability))
+# Stability: ✓ Stable (90%)
+#
+# Warnings:
+#   ⚠️ Some variance detected in 1 measurements
+
+if stability.is_unstable:
+    print("⚠️ Results may be unreliable!")
+    for warning in stability.warnings:
+        print(f"  - {warning}")
+    for rec in stability.recommendations:
+        print(f"  → {rec}")
+```
+
+---
+
+### 2️⃣3️⃣ Badge Generation
+
+Generate SVG badges for your README.
+
+```python
+from bigocheck import benchmark_function, generate_badge, save_badge
+
+analysis = benchmark_function(my_func, sizes=[100, 500, 1000])
+
+# Generate and save SVG badge
+badge = generate_badge(analysis.best_label)  # Color-coded by complexity
+save_badge(badge, "docs/complexity_badge.svg")
+```
+
+**Color Coding:**
+| Complexity | Color |
+|------------|-------|
+| O(1) | 🟢 Green |
+| O(log n) | 🟢 Light Green |
+| O(n) | 🟡 Yellow |
+| O(n log n) | 🟠 Orange |
+| O(n²) | 🔴 Red |
+| O(n³+) | 🔴 Dark Red |
+
+**Use in README:**
+```markdown
+![complexity](docs/complexity_badge.svg)
+```
+
+**Or use shields.io URL:**
+```python
+from bigocheck import generate_badge_url
+
+url = generate_badge_url("O(n log n)")
+# https://img.shields.io/badge/complexity-O%28n%20log%20n%29-fe7d37
+```
+
 ## 🖥️ CLI Reference
 
 ```bash
@@ -734,6 +835,23 @@ from bigocheck import (
     start_repl,            # Start REPL
     quick_check,           # One-liner check
     
+    # Git Tracking
+    track_commits,         # Track complexity across commits
+    find_regression_commit, # Binary search for bad commit
+    CommitResult,
+    TrackingResult,
+    
+    # Stability Detection
+    compute_stability,     # Detect unreliable results
+    format_stability,
+    StabilityResult,
+    
+    # Badge Generation
+    generate_badge,        # SVG badge
+    generate_dual_badge,   # Time + space badge
+    save_badge,
+    generate_badge_url,    # shields.io URL
+    
     # Data Classes
     Analysis,
     Measurement,
@@ -751,7 +869,7 @@ from bigocheck import (
 ```
 bigocheck/
 ├── src/bigocheck/
-│   ├── __init__.py       # Package exports (25+ functions)
+│   ├── __init__.py       # Package exports (40+ functions)
 │   ├── core.py           # Benchmarking and fitting
 │   ├── cli.py            # CLI (run, regression, repl)
 │   ├── assertions.py     # @assert_complexity, verify_bounds
@@ -766,13 +884,16 @@ bigocheck/
 │   ├── amortized.py      # Amortized complexity analysis
 │   ├── parallel.py       # Parallel benchmarking
 │   ├── interactive.py    # REPL mode
+│   ├── git_tracking.py   # Git commit tracking
+│   ├── stability.py      # Instability detection
+│   ├── badges.py         # Badge generation
 │   ├── datagen.py        # Data generators
 │   ├── plotting.py       # Optional matplotlib plots
 │   ├── pytest_plugin.py  # pytest integration
 │   └── pre_commit.py     # Pre-commit hook template
 ├── .github/workflows/    # CI/CD templates
 ├── docs/                 # Documentation assets
-├── tests/                # Test suite (77+ tests)
+├── tests/                # Test suite (78+ tests)
 ├── pyproject.toml
 ├── CITATION.cff
 └── LICENSE
@@ -799,6 +920,9 @@ pytest -v
 - Amortized analysis
 - Parallel benchmarking
 - HTML report generation
+- Git commit tracking
+- Instability detection
+- Badge generation
 
 ---
 
