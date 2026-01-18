@@ -16,7 +16,11 @@ Empirical complexity regression checker: run a target function across input size
 
 | Feature | Description |
 |---------|-------------|
-| **🧮 Complexity Fitting** | Fits to 9 classes: O(1), O(log n), O(√n), O(n), O(n log n), O(n²), O(n³), O(2ⁿ), O(n!) |
+| **🧮 Time Complexity** | Fits to 9 classes: O(1), O(log n), O(√n), O(n), O(n log n), O(n²), O(n³), O(2ⁿ), O(n!) |
+| **📐 Space Complexity** | Classifies memory usage to complexity classes (O(1), O(n), O(n²), etc.) |
+| **📊 Statistical Significance** | P-values to validate complexity classification |
+| **🔄 Regression Detection** | Save baselines and detect performance regressions in CI/CD |
+| **📉 Best/Worst/Avg Cases** | Analyze with sorted, reversed, and random inputs |
 | **✅ Complexity Assertions** | `@assert_complexity("O(n)")` decorator for CI/CD testing |
 | **🔍 Bounds Verification** | `verify_bounds()` to check if function meets expected complexity |
 | **📊 Confidence Scoring** | Know how reliable your results are |
@@ -24,10 +28,11 @@ Empirical complexity regression checker: run a target function across input size
 | **📄 Report Generation** | Generate markdown reports automatically |
 | **🔧 pytest Plugin** | Integration with pytest for testing |
 | **📈 Plotting** | Optional matplotlib visualization |
-| **💾 Memory Profiling** | Track peak memory usage |
+| **💾 Memory Profiling** | Track peak memory usage with `--memory` flag |
 | **🚀 Auto Size Selection** | Automatically choose optimal input sizes |
 | **📦 Zero Dependencies** | Pure standard library, no numpy required |
 | **💻 CLI-First** | Full command-line interface |
+| **⚙️ GitHub Actions** | Pre-built CI workflow template |
 
 ---
 
@@ -336,16 +341,31 @@ analysis = benchmark_function(
 
 ---
 
-### 🔟 Memory Profiling
+### 🔟 Memory & Space Complexity
 
-Track peak memory usage.
+Track memory usage and automatically classify space complexity.
 
 ```bash
 bigocheck run --target mymodule:myfunc --sizes 1000 5000 10000 --memory
 ```
 
+**Example Output:**
+```
+Time Complexity:  O(n)
+Space Complexity: O(n)
+
+Measurements:
+  n=1000     time=0.001234s ±0.000001s  mem=81,920B
+  n=5000     time=0.006789s ±0.000005s  mem=409,600B
+  n=10000    time=0.012345s ±0.000012s  mem=819,200B
+```
+
+**Library Usage:**
 ```python
 analysis = benchmark_function(my_func, sizes=[1000, 5000, 10000], memory=True)
+
+print(f"Time Complexity:  {analysis.best_label}")
+print(f"Space Complexity: {analysis.space_label}")
 
 for m in analysis.measurements:
     print(f"n={m.size}: {m.seconds:.4f}s, memory={m.memory_bytes:,} bytes")
@@ -442,6 +462,21 @@ from bigocheck import (
     VerificationResult,
     ComparisonResult,
     ConfidenceResult,
+    
+    # Statistics
+    SignificanceResult,
+    compute_significance,
+    
+    # Regression
+    Baseline,
+    RegressionResult,
+    save_baseline,
+    load_baseline,
+    detect_regression,
+    
+    # Case Analysis
+    CasesAnalysis,
+    analyze_cases,
 )
 ```
 
@@ -458,9 +493,13 @@ bigocheck/
 │   ├── assertions.py    # Assertions and verification
 │   ├── compare.py       # A/B comparison
 │   ├── reports.py       # Report generation
+│   ├── statistics.py    # P-values and significance
+│   ├── regression.py    # Baseline save/load, regression detection
+│   ├── cases.py         # Best/worst/average case analysis
 │   ├── datagen.py       # Data generators
 │   ├── plotting.py      # Optional plotting
 │   └── pytest_plugin.py # pytest integration
+├── .github/workflows/   # CI/CD templates
 ├── tests/               # Test suite
 ├── pyproject.toml
 └── LICENSE
@@ -476,6 +515,7 @@ pytest -v
 ```
 
 ---
+
 
 ## 📄 License
 

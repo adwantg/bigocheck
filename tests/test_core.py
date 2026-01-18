@@ -66,6 +66,63 @@ def test_memory_profiling():
     assert any(m.memory_bytes is not None for m in analysis.measurements)
 
 
+def test_space_complexity_fields():
+    """Test that Analysis has space complexity fields."""
+    analysis = benchmark_function(targets.linear_sleep, sizes=[1, 2], trials=1, memory=True)
+    assert hasattr(analysis, 'space_fits')
+    assert hasattr(analysis, 'space_label')
+
+
+def test_space_complexity_fitting():
+    """Test that space complexity is fitted when memory=True."""
+    def allocate_linear(n):
+        """O(n) space - allocates a list of size n."""
+        return [0] * n
+    
+    analysis = benchmark_function(allocate_linear, sizes=[1000, 5000, 10000], trials=1, memory=True)
+    
+    # Should have space fits
+    assert len(analysis.space_fits) > 0
+    # Should have a space label
+    assert analysis.space_label is not None
+    # Space should be classified (likely O(n) for linear allocation)
+    assert analysis.space_label in ["O(1)", "O(log n)", "O(√n)", "O(n)", "O(n log n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(n!)"]
+
+
+def test_fit_space_complexity_function():
+    """Test fit_space_complexity directly."""
+    from bigocheck.core import fit_space_complexity
+    
+    # Create measurements with memory data
+    measurements = [
+        Measurement(size=100, seconds=0.01, memory_bytes=1000),
+        Measurement(size=200, seconds=0.02, memory_bytes=2000),
+        Measurement(size=400, seconds=0.04, memory_bytes=4000),
+    ]
+    
+    fits, label = fit_space_complexity(measurements)
+    
+    assert len(fits) > 0
+    assert label is not None
+    # Linear growth in memory should be classified as O(n)
+    assert label == "O(n)"
+
+
+def test_fit_space_complexity_no_memory():
+    """Test fit_space_complexity with no memory data returns empty."""
+    from bigocheck.core import fit_space_complexity
+    
+    measurements = [
+        Measurement(size=100, seconds=0.01, memory_bytes=None),
+        Measurement(size=200, seconds=0.02, memory_bytes=None),
+    ]
+    
+    fits, label = fit_space_complexity(measurements)
+    
+    assert fits == []
+    assert label is None
+
+
 def test_complexity_basis_includes_new_classes():
     """Test that new complexity classes are present."""
     basis = complexity_basis()
@@ -119,3 +176,4 @@ def test_arg_factory_wrapper():
     args, kwargs = factory(10)
     assert len(args[0]) == 10
     assert kwargs == {}
+

@@ -4,6 +4,7 @@ Core benchmarking and complexity fitting utilities.
 """
 from __future__ import annotations
 
+import gc
 import importlib
 import math
 import statistics
@@ -38,6 +39,9 @@ class Analysis:
     measurements: List[Measurement]
     fits: List[FitResult]
     best_label: str
+    # Space complexity (only populated when memory=True)
+    space_fits: List[FitResult] = field(default_factory=list)
+    space_label: Optional[str] = None
 
 
 def _safe_log(n: int) -> float:
@@ -120,6 +124,36 @@ def fit_complexities(measurements: List[Measurement]) -> Tuple[List[FitResult], 
     return results, best
 
 
+def fit_space_complexity(measurements: List[Measurement]) -> Tuple[List[FitResult], Optional[str]]:
+    """
+    Fit memory measurements to complexity classes using least-squares scaling.
+    
+    Returns a tuple of (sorted list of FitResults, best matching label).
+    Returns ([], None) if no memory data is available.
+    """
+    # Filter measurements with memory data
+    mem_measurements = [m for m in measurements if m.memory_bytes is not None]
+    
+    if len(mem_measurements) < 2:
+        return [], None
+    
+    n_values = [m.size for m in mem_measurements]
+    mem_values = [float(m.memory_bytes) for m in mem_measurements]  # type: ignore
+    
+    results: List[FitResult] = []
+    for label, basis_fn in complexity_basis().items():
+        basis_vals = [max(basis_fn(n), 1e-12) for n in n_values]
+        denom = sum(b * b for b in basis_vals)
+        scale = sum(b * m for b, m in zip(basis_vals, mem_values)) / denom if denom else 0.0
+        preds = [scale * b for b in basis_vals]
+        err = _relative_rmse(mem_values, preds)
+        results.append(FitResult(label=label, scale=scale, error=err))
+    
+    results.sort(key=lambda r: r.error)
+    best = results[0].label if results else None
+    return results, best
+
+
 def benchmark_function(
     func: Callable[..., Any],
     sizes: Iterable[int],
@@ -139,11 +173,12 @@ def benchmark_function(
         trials: Number of repetitions per size (averaged).
         warmup: Number of warmup runs before timing (to warm caches/JIT).
         verbose: If True, print progress to stderr.
-        memory: If True, track peak memory usage using tracemalloc.
+        memory: If True, track peak memory usage and fit space complexity.
         arg_factory: Optional callable returning (args, kwargs) for each n.
 
     Returns:
-        Analysis object containing measurements and complexity fits.
+        Analysis object containing measurements, time complexity fits,
+        and space complexity fits (when memory=True).
     """
     measurements: List[Measurement] = []
     sizes_list = list(sizes)
@@ -174,7 +209,8 @@ def benchmark_function(
                 args, kwargs = arg_factory(n)
             
             if memory and trial_idx == 0:
-                # Only measure memory on first trial
+                # Force garbage collection before measuring memory
+                gc.collect()
                 tracemalloc.start()
                 start = time.perf_counter()
                 func(*args, **kwargs)
@@ -198,8 +234,22 @@ def benchmark_function(
             memory_bytes=peak_memory,
         ))
 
+    # Fit time complexity
     fits, best_label = fit_complexities(measurements)
-    return Analysis(measurements=measurements, fits=fits, best_label=best_label)
+    
+    # Fit space complexity (if memory tracking was enabled)
+    space_fits: List[FitResult] = []
+    space_label: Optional[str] = None
+    if memory:
+        space_fits, space_label = fit_space_complexity(measurements)
+    
+    return Analysis(
+        measurements=measurements,
+        fits=fits,
+        best_label=best_label,
+        space_fits=space_fits,
+        space_label=space_label,
+    )
 
 
 def resolve_callable(target: str) -> Callable[..., Any]:

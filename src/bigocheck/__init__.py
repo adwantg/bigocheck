@@ -10,6 +10,7 @@ from .core import (
     Measurement,
     benchmark_function,
     fit_complexities,
+    fit_space_complexity,
     complexity_basis,
     resolve_callable,
 )
@@ -40,6 +41,31 @@ from .reports import (
     save_report,
 )
 
+# Statistics (p-values)
+from .statistics import (
+    SignificanceResult,
+    compute_significance,
+    format_significance,
+)
+
+# Regression detection
+from .regression import (
+    Baseline,
+    RegressionResult,
+    save_baseline,
+    load_baseline,
+    detect_regression,
+    compare_to_baseline_file,
+)
+
+# Case analysis (best/worst/avg)
+from .cases import (
+    CaseResult,
+    CasesAnalysis,
+    analyze_cases,
+    format_cases_result,
+)
+
 __all__ = [
     # Version
     "__version__",
@@ -49,6 +75,7 @@ __all__ = [
     "Measurement",
     "benchmark_function",
     "fit_complexities",
+    "fit_space_complexity",
     "complexity_basis",
     "resolve_callable",
     # Assertions
@@ -68,6 +95,22 @@ __all__ = [
     "generate_comparison_report",
     "generate_verification_report",
     "save_report",
+    # Statistics
+    "SignificanceResult",
+    "compute_significance",
+    "format_significance",
+    # Regression
+    "Baseline",
+    "RegressionResult",
+    "save_baseline",
+    "load_baseline",
+    "detect_regression",
+    "compare_to_baseline_file",
+    # Cases
+    "CaseResult",
+    "CasesAnalysis",
+    "analyze_cases",
+    "format_cases_result",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.4.0"

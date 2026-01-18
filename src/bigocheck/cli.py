@@ -65,7 +65,7 @@ Examples:
     run_parser.add_argument(
         "--memory",
         action="store_true",
-        help="Track peak memory usage for each size",
+        help="Track peak memory usage and compute space complexity",
     )
     run_parser.add_argument(
         "--plot",
@@ -84,43 +84,61 @@ Examples:
 
 
 def _analysis_to_json(analysis: Analysis) -> str:
-    return json.dumps(
-        {
-            "best_label": analysis.best_label,
-            "measurements": [
-                {
-                    "size": m.size,
-                    "seconds": m.seconds,
-                    "std_dev": m.std_dev,
-                    **({"memory_bytes": m.memory_bytes} if m.memory_bytes else {}),
-                }
-                for m in analysis.measurements
-            ],
-            "fits": [
-                {"label": f.label, "scale": f.scale, "error": f.error}
-                for f in analysis.fits
-            ],
-        },
-        indent=2,
-    )
+    data = {
+        "time_complexity": analysis.best_label,
+        "space_complexity": analysis.space_label,
+        "measurements": [
+            {
+                "size": m.size,
+                "seconds": m.seconds,
+                "std_dev": m.std_dev,
+                **({} if m.memory_bytes is None else {"memory_bytes": m.memory_bytes}),
+            }
+            for m in analysis.measurements
+        ],
+        "time_fits": [
+            {"label": f.label, "scale": f.scale, "error": f.error}
+            for f in analysis.fits
+        ],
+    }
+    
+    # Add space fits if available
+    if analysis.space_fits:
+        data["space_fits"] = [
+            {"label": f.label, "scale": f.scale, "error": f.error}
+            for f in analysis.space_fits
+        ]
+    
+    return json.dumps(data, indent=2)
 
 
 def _print_human(analysis: Analysis, show_memory: bool = False) -> None:
-    print(f"Best fit: {analysis.best_label}")
+    # Header with complexity results
+    print(f"Time Complexity:  {analysis.best_label}")
+    if show_memory and analysis.space_label:
+        print(f"Space Complexity: {analysis.space_label}")
+    
     print("\nMeasurements:")
     
     if show_memory and any(m.memory_bytes for m in analysis.measurements):
         for m in analysis.measurements:
-            mem_str = f" mem={m.memory_bytes:,}B" if m.memory_bytes else ""
-            print(f"  n={m.size:<8} avg={m.seconds:.6f}s ±{m.std_dev:.6f}s{mem_str}")
+            mem_str = f"  mem={m.memory_bytes:,}B" if m.memory_bytes else ""
+            print(f"  n={m.size:<8} time={m.seconds:.6f}s ±{m.std_dev:.6f}s{mem_str}")
     else:
         for m in analysis.measurements:
-            print(f"  n={m.size:<8} avg={m.seconds:.6f}s ±{m.std_dev:.6f}s")
+            print(f"  n={m.size:<8} time={m.seconds:.6f}s ±{m.std_dev:.6f}s")
     
-    print("\nFits (lower error is better):")
-    for f in analysis.fits:
+    print("\nTime Fits (lower error is better):")
+    for f in analysis.fits[:5]:  # Show top 5
         marker = " ★" if f.label == analysis.best_label else ""
         print(f"  {f.label:<12} error={f.error:.4f} scale={f.scale:.6g}{marker}")
+    
+    # Show space fits if available
+    if show_memory and analysis.space_fits:
+        print("\nSpace Fits (lower error is better):")
+        for f in analysis.space_fits[:5]:  # Show top 5
+            marker = " ★" if f.label == analysis.space_label else ""
+            print(f"  {f.label:<12} error={f.error:.4f} scale={f.scale:.6g}{marker}")
 
 
 def main(argv: List[str] | None = None) -> None:
