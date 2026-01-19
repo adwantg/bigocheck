@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import wraps
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional
 
 from .core import Analysis, benchmark_function
 
@@ -22,7 +22,6 @@ COMPLEXITY_ORDER = [
 
 class ComplexityThresholdError(Exception):
     """Raised when complexity exceeds threshold."""
-    pass
 
 
 @dataclass

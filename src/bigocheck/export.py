@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import TYPE_CHECKING, List, Optional, Dict, Any
+from typing import TYPE_CHECKING, Optional, Dict, Any
 
 if TYPE_CHECKING:
     from .core import Analysis

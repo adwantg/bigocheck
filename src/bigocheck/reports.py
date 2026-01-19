@@ -5,7 +5,7 @@ Report generation utilities for bigocheck.
 from __future__ import annotations
 
 import datetime
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .core import Analysis
@@ -50,7 +50,7 @@ def generate_report(
     # Summary
     lines.append("## Summary")
     lines.append("")
-    lines.append(f"| Metric | Value |")
+    lines.append("| Metric | Value |")
     lines.append("|--------|-------|")
     lines.append(f"| **Best Fit** | `{analysis.best_label}` |")
     lines.append(f"| **Confidence** | {confidence.level} ({confidence.score:.0%}) |")

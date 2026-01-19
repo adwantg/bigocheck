@@ -5,7 +5,7 @@ import tempfile
 import pytest
 
 from bigocheck import benchmark_function
-from bigocheck.jupyter import _repr_html_, display_analysis, display_comparison
+from bigocheck.jupyter import _repr_html_
 from bigocheck.export import to_csv, to_markdown_table, to_dict, to_json
 from bigocheck.alerts import (
     check_threshold,
@@ -160,7 +160,7 @@ class TestThresholdAlerts:
             return sum(range(n))
         
         import warnings
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True) as _:  # noqa: F841
             warnings.simplefilter("always")
             analysis = monitor_complexity(
                 simple,

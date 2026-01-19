@@ -1,6 +1,5 @@
 # Author: gadwant
 """Tests for cases module (best/worst/average case analysis)."""
-import pytest
 
 from bigocheck import analyze_cases, CaseResult, CasesAnalysis, format_cases_result
 

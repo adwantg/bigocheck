@@ -7,7 +7,7 @@ import os
 # Ensure we can import bigocheck if running from source
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from bigocheck import benchmark_function, verify_bounds
+from bigocheck import benchmark_function
 from bigocheck.explanations import explain_complexity
 from bigocheck.recommendations import suggest_sizes, format_recommendation
 from bigocheck.multi_compare import compare_algorithms

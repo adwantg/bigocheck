@@ -5,9 +5,8 @@ Creates a folder with static HTML/JS files to visualize benchmarks.
 Zero dependencies: Uses string templates, no Jinja2 or Flask required.
 """
 import os
-import json
 import datetime
-from typing import List, Dict
+from typing import List
 
 from .core import Analysis
 

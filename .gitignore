@@ -73,3 +73,7 @@ GROWTH_STRATEGY.md
 examples/readme_demo.py
 ROADMAP.md
 TODO.md
+
+fetch_codacy_issues.py
+codacy_issues.json
+.env

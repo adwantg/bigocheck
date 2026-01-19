@@ -1,10 +1,8 @@
 # Author: gadwant
 """Tests for new advanced features."""
-import asyncio
 import os
 import tempfile
 
-import pytest
 
 from bigocheck import (
     benchmark_function,

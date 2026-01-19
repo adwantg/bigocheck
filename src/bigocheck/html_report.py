@@ -7,12 +7,10 @@ Generate beautiful HTML reports for complexity analysis.
 from __future__ import annotations
 
 import html
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .core import Analysis
-    from .compare import ComparisonResult
-    from .cases import CasesAnalysis
 
 
 def _escape(text: str) -> str:

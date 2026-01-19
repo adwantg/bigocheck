@@ -22,7 +22,6 @@ COMPLEXITY_ORDER = [
 
 class ComplexityBoundsError(Exception):
     """Raised when complexity is outside specified bounds."""
-    pass
 
 
 @dataclass

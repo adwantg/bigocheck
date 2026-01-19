@@ -6,12 +6,11 @@ Detects when benchmark results are too noisy to be reliable.
 """
 from __future__ import annotations
 
-import statistics
 from dataclasses import dataclass
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .core import Analysis, Measurement
+    from .core import Analysis
 
 
 @dataclass

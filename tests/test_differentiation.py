@@ -1,11 +1,10 @@
 import os
 import shutil
 import tempfile
-import pytest
 from bigocheck.ast_analysis import predict_complexity, verify_hybrid
 from bigocheck.dashboard import generate_dashboard
 from bigocheck.cloud import generate_github_action
-from bigocheck.core import Analysis, Measurement, FitResult
+from bigocheck.core import Analysis
 
 # Tiny helpers for AST testing
 def func_constant(n):

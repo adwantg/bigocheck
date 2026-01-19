@@ -10,9 +10,9 @@ from __future__ import annotations
 import functools
 import math
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional
 
-from .core import Analysis, benchmark_function, complexity_basis
+from .core import Analysis, benchmark_function
 
 
 @dataclass
@@ -207,7 +207,6 @@ def verify_bounds(
 
 class ComplexityAssertionError(AssertionError):
     """Raised when a complexity assertion fails."""
-    pass
 
 
 def assert_complexity(

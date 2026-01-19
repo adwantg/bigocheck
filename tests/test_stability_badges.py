@@ -1,6 +1,5 @@
 # Author: gadwant
 """Tests for new stability and badge features."""
-import pytest
 
 from bigocheck import (
     benchmark_function,

@@ -7,11 +7,9 @@ from bigocheck.explanations import (
     explain_complexity,
     get_complexity_comparison,
     suggest_improvement,
-    format_complexity_report,
 )
 from bigocheck.recommendations import (
     suggest_sizes,
-    auto_calibrate,
     detect_warmup_needed,
     SizeRecommendation,
 )
@@ -21,18 +19,14 @@ from bigocheck.multi_compare import (
 )
 from bigocheck.bounds import (
     check_bounds,
-    assert_bounds,
-    ComplexityBoundsError,
 )
 from bigocheck.profiles import (
     get_profile,
     benchmark_with_profile,
     list_profiles,
-    PROFILES,
 )
 from bigocheck.docgen import (
     generate_complexity_docstring,
-    document_complexity,
 )
 
 

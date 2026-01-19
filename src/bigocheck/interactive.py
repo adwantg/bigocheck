@@ -7,7 +7,6 @@ Provides a simple REPL for quick complexity analysis.
 from __future__ import annotations
 
 import code
-import sys
 from typing import Any, Callable, List, Optional
 
 

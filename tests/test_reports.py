@@ -2,7 +2,6 @@
 """
 Tests for reports module: generate_report, generate_comparison_report.
 """
-import pytest
 
 from bigocheck import (
     benchmark_function,

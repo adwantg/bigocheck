@@ -1,6 +1,5 @@
 # Author: gadwant
 """Tests for statistics module (p-values)."""
-import pytest
 
 from bigocheck import benchmark_function, compute_significance, SignificanceResult
 

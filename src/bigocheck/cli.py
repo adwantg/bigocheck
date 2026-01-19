@@ -204,10 +204,6 @@ Examples:
         "--json",
         action="store_true",
         help="Output JSON summary",
-    comp_parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output JSON summary",
     )
 
     # Dashboard command
@@ -420,7 +416,7 @@ def main(argv: List[str] | None = None) -> None:
                 print(f"Error resolving {t}: {e}", file=sys.stderr)
                 sys.exit(1)
         
-        from .multi_compare import compare_algorithms, generate_markdown_comparison
+        from .multi_compare import compare_algorithms
         
         print(f"Comparing {len(targets)} algorithms on sizes {args.sizes}...", file=sys.stderr)
         result = compare_algorithms(targets, sizes=args.sizes, trials=args.trials)

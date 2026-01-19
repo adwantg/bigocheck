@@ -7,7 +7,7 @@ how they perform in best, worst, and average scenarios.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class CasesAnalysis:
 
 def _default_generators() -> Dict[str, Callable[[int], Any]]:
     """Default input generators for different cases."""
-    import random
+    import random  # nosec B311 - Not used for cryptographic purposes
     
     def sorted_list(n: int) -> List[int]:
         return list(range(n))

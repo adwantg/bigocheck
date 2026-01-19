@@ -6,9 +6,9 @@ Track complexity changes across git commits and find regression commits.
 """
 from __future__ import annotations
 
-import subprocess
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+import subprocess  # nosec B404 - Required for git operations
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 from .core import Analysis, benchmark_function, resolve_callable
 
@@ -37,6 +37,7 @@ class TrackingResult:
 
 def _run_git_command(cmd: List[str], cwd: Optional[str] = None) -> str:
     """Run a git command and return output."""
+    # nosec B603, B607 - Only runs git with controlled arguments
     result = subprocess.run(
         ["git"] + cmd,
         capture_output=True,

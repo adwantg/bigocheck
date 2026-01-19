@@ -7,7 +7,7 @@ arg_factory parameter.
 """
 from __future__ import annotations
 
-import random
+import random  # nosec B311 - Not used for cryptographic purposes
 import string
 from typing import Any, Dict, List, Tuple
 

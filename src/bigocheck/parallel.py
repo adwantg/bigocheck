@@ -9,11 +9,10 @@ from __future__ import annotations
 import multiprocessing
 import statistics
 import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, Iterable, List, Optional
 
-from .core import Analysis, FitResult, Measurement, fit_complexities, fit_space_complexity
+from .core import Analysis, Measurement, fit_complexities
 
 
 def _benchmark_single_size(

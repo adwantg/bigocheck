@@ -47,8 +47,9 @@ def run_pre_commit(files: List[str]) -> int:
 def main() -> int:
     """Entry point for pre-commit hook."""
     # Get staged files from git
-    import subprocess
+    import subprocess  # nosec B404 - Required for git operations
     
+    # nosec B603, B607 - Only runs git with static arguments
     result = subprocess.run(
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
         capture_output=True,

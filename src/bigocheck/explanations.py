@@ -6,7 +6,7 @@ Human-readable explanations of what complexity classes mean.
 """
 from __future__ import annotations
 
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 
 
 # Comprehensive complexity explanations

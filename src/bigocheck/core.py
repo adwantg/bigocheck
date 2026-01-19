@@ -272,6 +272,7 @@ def resolve_callable(target: str) -> Callable[..., Any]:
     if ":" not in target:
         raise ValueError("Target must be in the form module.sub:callable")
     module_name, func_name = target.split(":", 1)
+    # nosec B102 - Module path comes from CLI target argument, validated above
     module: ModuleType = importlib.import_module(module_name)
     func = getattr(module, func_name, None)
     if not callable(func):

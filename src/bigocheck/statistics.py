@@ -7,13 +7,12 @@ that complexity classifications are statistically significant.
 """
 from __future__ import annotations
 
-import math
 import random
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .core import Analysis, FitResult, Measurement
+    from .core import Analysis, Measurement
 
 
 @dataclass

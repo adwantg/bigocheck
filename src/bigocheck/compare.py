@@ -4,11 +4,10 @@ A/B comparison utilities for comparing algorithm implementations.
 """
 from __future__ import annotations
 
-import statistics
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
-from .core import Analysis, Measurement, benchmark_function
+from .core import Analysis, benchmark_function
 
 
 @dataclass
@@ -165,7 +164,6 @@ def compare_to_baseline(
     Returns:
         Dictionary with comparison results.
     """
-    from .core import complexity_basis
     
     analysis = benchmark_function(func, sizes=sizes, trials=trials, warmup=warmup)
     

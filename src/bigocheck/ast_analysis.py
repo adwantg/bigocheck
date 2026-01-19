@@ -6,7 +6,7 @@ Provides a "theoretical" Complexity Estimate to compare with empirical results.
 import ast
 import inspect
 import textwrap
-from typing import Callable, Optional, Dict
+from typing import Callable, Dict
 
 class ComplexityPredictor(ast.NodeVisitor):
     def __init__(self):

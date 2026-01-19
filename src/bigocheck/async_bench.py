@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import statistics
 import time
-from dataclasses import dataclass
 from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional, Tuple
 
 from .core import Analysis, FitResult, Measurement, fit_complexities, fit_space_complexity

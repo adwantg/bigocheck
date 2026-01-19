@@ -2,7 +2,6 @@
 """
 Tests for compare module: compare_functions, compare_to_baseline.
 """
-import pytest
 
 from bigocheck import compare_functions, compare_to_baseline
 

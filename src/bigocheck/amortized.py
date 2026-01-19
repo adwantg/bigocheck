@@ -7,12 +7,11 @@ with occasional expensive operations (e.g., dynamic arrays, hash tables).
 """
 from __future__ import annotations
 
-import statistics
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
-from .core import FitResult, Measurement, fit_complexities
+from .core import Measurement, fit_complexities
 
 
 @dataclass
