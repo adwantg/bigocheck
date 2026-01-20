@@ -125,7 +125,6 @@ def compare_functions(
         summary = f"{name_a} and {name_b} are roughly equivalent"
     
     if crossover_point:
-        winner_name = name_a if overall_winner == "func_a" else name_b
         summary += f". Crossover at n={crossover_point}"
     
     return ComparisonResult(

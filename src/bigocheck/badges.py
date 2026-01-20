@@ -124,7 +124,7 @@ def generate_dual_badge(
         return generate_badge(time_complexity)
     
     time_color = _get_color(time_complexity)
-    space_color = _get_color(space_complexity)
+    _space_color = _get_color(space_complexity)  # noqa: F841 - Reserved for future dual-color badge
     
     # Combined badge
     label = "complexity"

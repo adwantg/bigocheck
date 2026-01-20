@@ -372,7 +372,7 @@ def main(argv: List[str] | None = None) -> None:
         
         result = detect_regression(analysis, baseline, time_threshold=args.threshold)
         
-        print(f"\nResults:")
+        print("\nResults:")
         print(f"  Current:  {analysis.best_label}")
         print(f"  Baseline: {baseline.best_label}")
         print(f"  Slowdown: {result.time_slowdown:.2f}x")

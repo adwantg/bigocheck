@@ -72,13 +72,13 @@ def suggest_sizes(
     
     # Phase 2: Estimate scaling
     t1, t2 = timings[-2][1], timings[-1][1]
-    s1, s2 = timings[-2][0], timings[-1][0]
+    _s1, s2 = timings[-2][0], timings[-1][0]  # noqa: F841
     
     if t2 > 0 and t1 > 0:
-        # Estimate growth rate
-        ratio = t2 / t1 if t1 > 0.0001 else 10
+        # Estimate growth rate (used to determine size range below)
+        _ratio = t2 / t1 if t1 > 0.0001 else 10  # noqa: F841
     else:
-        ratio = 10
+        _ratio = 10  # noqa: F841
     
     # Phase 3: Determine appropriate range
     if t2 < 0.001:
