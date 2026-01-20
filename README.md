@@ -11,7 +11,9 @@ Empirical complexity regression checker: run a target function across input size
 [![Downloads](https://img.shields.io/pypi/dm/bigocheck)](https://pypi.org/project/bigocheck/)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-green.svg)]()
 [![Tests](https://img.shields.io/badge/tests-113%2F113%20passing-success)]()
-[![Author: gadwant](https://img.shields.io/badge/author-gadwant-purple.svg)](https://github.com/adwantg)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/2eee22cbfa8443cda69af338e4e12a83)](https://app.codacy.com/gh/adwantg/bigocheck/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Typed](https://img.shields.io/badge/typed-yes-blue.svg)]()
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ---
 
