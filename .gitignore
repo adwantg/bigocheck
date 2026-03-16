@@ -77,3 +77,4 @@ TODO.md
 fetch_codacy_issues.py
 codacy_issues.json
 .env
+medium/*

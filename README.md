@@ -10,7 +10,7 @@ Empirical complexity regression checker: run a target function across input size
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Downloads](https://img.shields.io/pypi/dm/bigocheck)](https://pypi.org/project/bigocheck/)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-green.svg)]()
-[![Tests](https://img.shields.io/badge/tests-113%2F113%20passing-success)]()
+[![Tests](https://img.shields.io/badge/tests-116%2F116%20passing-success)]()
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/2eee22cbfa8443cda69af338e4e12a83)](https://app.codacy.com/gh/adwantg/bigocheck/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Typed](https://img.shields.io/badge/typed-yes-blue.svg)]()
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -28,9 +28,9 @@ Empirical complexity regression checker: run a target function across input size
 ```python
 from bigocheck import benchmark_function
 
-def accidental_quadratic(items):
+def accidental_quadratic(n):
     result = []
-    for x in items:
+    for x in range(n):
         if x not in result:  # 🐛 O(n) lookup on list!
             result.append(x)
     return result
@@ -42,7 +42,7 @@ print(analysis.best_label)  # O(n²) ⚠️ Regression detected!
 **Key Value**:
 - ✅ **Zero Dependencies** - No numpy, scipy, or matplotlib required
 - ✅ **CLI-First** - Use in CI/CD without writing code
-- ✅ **Production Ready** - 113/113 tests passing, v1.0 stable
+- ✅ **Production Ready** - 116/116 tests passing, v0.8.0
 
 ---
 
@@ -126,19 +126,20 @@ python examples/demo.py
 ### 📊 Example Output
 
 ```python
-from bigocheck import benchmark_function
+from bigocheck import benchmark_function, compute_confidence
 
-def process_data(items):
-    # Accidental O(n²) - using 'in' on a list
+def process_data(n):
+    # Accidental O(n^2) - using 'in' on a list inside the loop
     result = []
-    for item in items:
+    for item in range(n):
         if item not in result:
             result.append(item)
     return result
 
 analysis = benchmark_function(process_data, sizes=[100, 500, 1000])
+confidence = compute_confidence(analysis)
 print(f"Complexity: {analysis.best_label}")
-print(f"Confidence: {analysis.best_r2:.2%}")
+print(f"Confidence: {confidence.level} ({confidence.score:.0%})")
 ```
 
 **Output**:
@@ -148,8 +149,8 @@ Benchmarking process_data...
   Size 500: 0.0284s  
   Size 1000: 0.1139s
 
-Complexity: O(n²)
-Confidence: 99.87%
+Complexity: O(n^2)
+Confidence: high (90%)
 ⚠️ Warning: Quadratic complexity detected!
 ```
 
@@ -877,7 +878,6 @@ print(md)
 
 Alert when complexity exceeds acceptable thresholds (great for CI/CD).
 
-```python
 ```python
 from bigocheck import check_threshold, assert_threshold, monitor_complexity
 

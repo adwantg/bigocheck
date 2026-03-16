@@ -230,6 +230,8 @@ Examples:
     # Cloud command
     sub.add_parser("cloud", help="Generate GitHub Actions workflow.")
 
+    return parser.parse_args(argv)
+
 
 def _analysis_to_json(analysis: Analysis) -> str:
     data = {
