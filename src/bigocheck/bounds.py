@@ -8,9 +8,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import wraps
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 from .core import Analysis, benchmark_function
+from .profiles import DEFAULT_ASSERTION_PROFILE_NAME, resolve_profile
 
 
 # Complexity ordering
@@ -119,7 +120,12 @@ def assert_bounds(
     lower: Optional[str] = None,
     upper: Optional[str] = None,
     sizes: Optional[List[int]] = None,
-    trials: int = 3,
+    trials: Optional[int] = None,
+    warmup: Optional[int] = None,
+    profile: Optional[str] = None,
+    setup: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    arg_factory: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    robust: Optional[bool] = None,
 ) -> Callable:
     """
     Decorator to assert function complexity is within bounds.
@@ -129,6 +135,11 @@ def assert_bounds(
         upper: Maximum acceptable complexity.
         sizes: Input sizes for benchmarking.
         trials: Number of trials per size.
+        warmup: Warmup runs.
+        profile: Optional benchmark profile name.
+        setup: Optional callable returning (args, kwargs) outside the timed region.
+        arg_factory: Optional callable returning (args, kwargs) inside the timed region.
+        robust: Override profile robust aggregation setting.
     
     Returns:
         Decorated function.
@@ -142,8 +153,14 @@ def assert_bounds(
         ...     # Should be O(n) or O(log n), not O(n^2)
         ...     pass
     """
-    if sizes is None:
-        sizes = [100, 500, 1000, 5000]
+    options = resolve_profile(
+        profile=profile or DEFAULT_ASSERTION_PROFILE_NAME,
+        sizes=sizes,
+        trials=trials,
+        warmup=warmup,
+        robust=robust,
+        default_profile=DEFAULT_ASSERTION_PROFILE_NAME,
+    )
     
     def decorator(func: Callable) -> Callable:
         _verified = False
@@ -153,7 +170,15 @@ def assert_bounds(
             nonlocal _verified
             
             if not _verified:
-                analysis = benchmark_function(func, sizes=sizes, trials=trials)
+                analysis = benchmark_function(
+                    func,
+                    sizes=options.sizes,
+                    trials=options.trials,
+                    warmup=options.warmup,
+                    setup=setup,
+                    arg_factory=arg_factory,
+                    robust=options.robust,
+                )
                 result = check_bounds(analysis, lower=lower, upper=upper)
                 
                 if not result.in_bounds:

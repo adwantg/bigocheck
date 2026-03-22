@@ -23,9 +23,10 @@ from .core import (
 
 async def _run_async_trials(
     func: Callable[..., Coroutine[Any, Any, Any]],
-    args: Tuple[Any, ...],
-    kwargs: Dict[str, Any],
+    size: int,
     trials: int,
+    setup: Optional[Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]]] = None,
+    arg_factory: Optional[Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]]] = None,
 ) -> Tuple[List[float], Optional[int]]:
     """Run async function multiple times and return timings."""
     import tracemalloc
@@ -35,6 +36,7 @@ async def _run_async_trials(
     peak_memory: Optional[int] = None
     
     for trial_idx in range(max(trials, 1)):
+        args, kwargs = _build_call_args(size, setup=setup, arg_factory=arg_factory)
         if trial_idx == 0:
             gc.collect()
             tracemalloc.start()
@@ -102,9 +104,12 @@ async def benchmark_async(
             await func(*args, **kwargs)
         
         # Timed runs
-        args, kwargs = _build_call_args(n, setup=setup, arg_factory=arg_factory)
         times, peak_memory = await _run_async_trials(
-            func, args, kwargs, trials
+            func,
+            n,
+            trials,
+            setup=setup,
+            arg_factory=arg_factory,
         )
         
         if not memory:

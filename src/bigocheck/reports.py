@@ -87,11 +87,13 @@ def generate_report(
     if include_all_fits:
         lines.append("## Complexity Fits")
         lines.append("")
-        lines.append("| Rank | Class | Error | Scale |")
-        lines.append("|------|-------|-------|-------|")
+        lines.append("| Rank | Class | Error | R Squared | Scale |")
+        lines.append("|------|-------|-------|-----------|-------|")
         for i, f in enumerate(analysis.fits, 1):
             marker = " ⭐" if f.label == analysis.best_label else ""
-            lines.append(f"| {i} | `{f.label}`{marker} | {f.error:.4f} | {f.scale:.6g} |")
+            lines.append(
+                f"| {i} | `{f.label}`{marker} | {f.error:.4f} | {f.r_squared:.3f} | {f.scale:.6g} |"
+            )
         lines.append("")
     
     # Confidence details

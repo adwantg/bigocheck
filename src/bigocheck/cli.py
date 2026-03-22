@@ -247,7 +247,13 @@ def _analysis_to_json(analysis: Analysis) -> str:
             for m in analysis.measurements
         ],
         "time_fits": [
-            {"label": f.label, "scale": f.scale, "error": f.error}
+            {
+                "label": f.label,
+                "scale": f.scale,
+                "error": f.error,
+                "relative_rmse": f.relative_rmse,
+                "r_squared": f.r_squared,
+            }
             for f in analysis.fits
         ],
     }
@@ -255,7 +261,13 @@ def _analysis_to_json(analysis: Analysis) -> str:
     # Add space fits if available
     if analysis.space_fits:
         data["space_fits"] = [
-            {"label": f.label, "scale": f.scale, "error": f.error}
+            {
+                "label": f.label,
+                "scale": f.scale,
+                "error": f.error,
+                "relative_rmse": f.relative_rmse,
+                "r_squared": f.r_squared,
+            }
             for f in analysis.space_fits
         ]
     

@@ -8,11 +8,20 @@ expected complexity bounds - useful for CI/CD testing.
 from __future__ import annotations
 
 import functools
+import inspect
 import math
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
+from .async_bench import benchmark_async
+from .bounds import _get_index
 from .core import Analysis, benchmark_function
+from .profiles import (
+    DEFAULT_ASSERTION_PROFILE_NAME,
+    DEFAULT_PROFILE_NAME,
+    resolve_profile,
+)
+from .stability import compute_stability
 
 
 @dataclass
@@ -27,6 +36,10 @@ class VerificationResult:
     confidence_score: float
     analysis: Analysis
     message: str
+    space_expected: Optional[str] = None
+    space_actual: Optional[str] = None
+    stability: Optional[str] = None
+    stability_score: Optional[float] = None
 
 
 @dataclass
@@ -35,6 +48,9 @@ class ConfidenceResult:
     level: str  # "high", "medium", "low"
     score: float  # 0.0 to 1.0
     reasons: List[str]
+
+
+CONFIDENCE_LEVELS = {"low": 0, "medium": 1, "high": 2}
 
 
 def compute_confidence(analysis: Analysis) -> ConfidenceResult:
@@ -124,8 +140,13 @@ def verify_bounds(
     expected: str,
     *,
     tolerance: float = 0.3,
-    trials: int = 3,
-    warmup: int = 1,
+    trials: Optional[int] = None,
+    warmup: Optional[int] = None,
+    profile: Optional[str] = None,
+    setup: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    arg_factory: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    robust: Optional[bool] = None,
+    memory: bool = False,
 ) -> VerificationResult:
     """
     Verify that a function matches expected complexity bounds.
@@ -137,6 +158,11 @@ def verify_bounds(
         tolerance: Maximum allowed error difference (default 0.3).
         trials: Number of trials per size.
         warmup: Warmup runs.
+        profile: Optional benchmark profile name.
+        setup: Optional callable returning (args, kwargs) outside the timed region.
+        arg_factory: Optional callable returning (args, kwargs) inside the timed region.
+        robust: Override profile robust aggregation setting.
+        memory: If True, collect memory data for optional space assertions.
     
     Returns:
         VerificationResult with pass/fail status and details.
@@ -145,8 +171,25 @@ def verify_bounds(
         >>> result = verify_bounds(sorted, [100, 500, 1000], expected="O(n log n)")
         >>> assert result.passes, result.message
     """
-    analysis = benchmark_function(func, sizes=sizes, trials=trials, warmup=warmup)
+    options = _resolve_benchmark_options(
+        profile=profile,
+        sizes=sizes,
+        trials=trials,
+        warmup=warmup,
+        robust=robust,
+    )
+    analysis = benchmark_function(
+        func,
+        sizes=options.sizes,
+        trials=options.trials,
+        warmup=options.warmup,
+        memory=memory,
+        setup=setup,
+        arg_factory=arg_factory,
+        robust=options.robust,
+    )
     confidence = compute_confidence(analysis)
+    stability = compute_stability(analysis)
     
     # Normalize expected format
     expected_normalized = expected.strip()
@@ -188,9 +231,28 @@ def verify_bounds(
         error = expected_fit.error
         
         if passes:
-            message = f"✓ Complexity verified: {expected_normalized} (error={error:.4f})"
+            message = _format_verification_message(
+                expected=expected_normalized,
+                actual=actual,
+                expected_fit=expected_fit,
+                best_fit=best_fit,
+                analysis=analysis,
+                confidence=confidence,
+                stability=stability,
+                passes=True,
+            )
         else:
-            message = f"✗ Expected {expected_normalized} but got {actual} (error diff={error_diff:.4f} > tolerance={tolerance})"
+            message = _format_verification_message(
+                expected=expected_normalized,
+                actual=actual,
+                expected_fit=expected_fit,
+                best_fit=best_fit,
+                analysis=analysis,
+                confidence=confidence,
+                stability=stability,
+                passes=False,
+                tolerance=tolerance,
+            )
     
     return VerificationResult(
         passes=passes,
@@ -202,6 +264,8 @@ def verify_bounds(
         confidence_score=confidence.score,
         analysis=analysis,
         message=message,
+        stability=stability.stability_level,
+        stability_score=stability.stability_score,
     )
 
 
@@ -214,9 +278,15 @@ def assert_complexity(
     *,
     sizes: Optional[List[int]] = None,
     tolerance: float = 0.3,
-    trials: int = 3,
-    warmup: int = 1,
+    trials: Optional[int] = None,
+    warmup: Optional[int] = None,
     min_confidence: str = "low",
+    profile: Optional[str] = None,
+    setup: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    arg_factory: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    robust: Optional[bool] = None,
+    space: Optional[str] = None,
+    space_upper: Optional[str] = None,
 ) -> Callable:
     """
     Decorator to assert that a function has expected complexity.
@@ -231,6 +301,12 @@ def assert_complexity(
         trials: Number of trials per size.
         warmup: Warmup runs.
         min_confidence: Minimum confidence level ("high", "medium", "low").
+        profile: Optional benchmark profile name.
+        setup: Optional callable returning (args, kwargs) outside the timed region.
+        arg_factory: Optional callable returning (args, kwargs) inside the timed region.
+        robust: Override profile robust aggregation setting.
+        space: Exact expected space complexity.
+        space_upper: Maximum allowed space complexity.
     
     Raises:
         ComplexityAssertionError: If complexity doesn't match.
@@ -242,35 +318,93 @@ def assert_complexity(
     """
     def decorator(func: Callable) -> Callable:
         verified = False
-        
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+
+        def _validate() -> None:
             nonlocal verified
-            
+
             if not verified:
-                test_sizes = sizes or [100, 500, 1000, 5000]
-                result = verify_bounds(
-                    func,
-                    sizes=test_sizes,
-                    expected=expected,
-                    tolerance=tolerance,
+                options = _resolve_benchmark_options(
+                    profile=profile,
+                    sizes=sizes,
                     trials=trials,
                     warmup=warmup,
+                    robust=robust,
                 )
-                
-                # Check confidence
-                confidence_levels = {"low": 0, "medium": 1, "high": 2}
-                if confidence_levels.get(result.confidence, 0) < confidence_levels.get(min_confidence, 0):
+                result = verify_bounds(
+                    func,
+                    sizes=options.sizes,
+                    expected=expected,
+                    tolerance=tolerance,
+                    trials=options.trials,
+                    warmup=options.warmup,
+                    profile=options.name,
+                    setup=setup,
+                    arg_factory=arg_factory,
+                    robust=options.robust,
+                    memory=bool(space or space_upper),
+                )
+
+                if CONFIDENCE_LEVELS.get(result.confidence, 0) < CONFIDENCE_LEVELS.get(min_confidence, 0):
                     raise ComplexityAssertionError(
                         f"Confidence too low: {result.confidence} < {min_confidence}. "
                         f"Try larger or more varied input sizes."
                     )
-                
+
+                _assert_space_expectation(
+                    result.analysis,
+                    expected=space,
+                    upper=space_upper,
+                    confidence=result.confidence,
+                    stability=result.stability or "unknown",
+                )
+
                 if not result.passes:
                     raise ComplexityAssertionError(result.message)
-                
+
                 verified = True
-            
+
+        if inspect.iscoroutinefunction(func):
+            @functools.wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                nonlocal verified
+
+                if not verified:
+                    options = _resolve_benchmark_options(
+                        profile=profile,
+                        sizes=sizes,
+                        trials=trials,
+                        warmup=warmup,
+                        robust=robust,
+                    )
+                    analysis = await benchmark_async(
+                        func,
+                        sizes=options.sizes,
+                        trials=options.trials,
+                        warmup=options.warmup,
+                        memory=bool(space or space_upper),
+                        setup=setup,
+                        arg_factory=arg_factory,
+                        robust=options.robust,
+                    )
+                    _raise_for_async_assertion(
+                        analysis=analysis,
+                        expected=expected,
+                        tolerance=tolerance,
+                        min_confidence=min_confidence,
+                        space=space,
+                        space_upper=space_upper,
+                    )
+                    verified = True
+
+                return await func(*args, **kwargs)
+
+            async_wrapper._complexity_expected = expected
+            async_wrapper._complexity_verified = lambda: verified
+            return async_wrapper
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            _validate()
             return func(*args, **kwargs)
         
         # Store verification info
@@ -280,6 +414,180 @@ def assert_complexity(
         return wrapper
     
     return decorator
+
+
+def _resolve_benchmark_options(
+    *,
+    profile: Optional[str],
+    sizes: Optional[List[int]],
+    trials: Optional[int],
+    warmup: Optional[int],
+    robust: Optional[bool],
+):
+    base_profile = profile or (
+        DEFAULT_ASSERTION_PROFILE_NAME
+        if all(value is None for value in (sizes, trials, warmup, robust))
+        else DEFAULT_PROFILE_NAME
+    )
+    return resolve_profile(
+        profile=base_profile,
+        sizes=sizes,
+        trials=trials,
+        warmup=warmup,
+        robust=robust,
+    )
+
+
+def _format_top_fits(analysis: Analysis, limit: int = 3) -> str:
+    return ", ".join(
+        f"{fit.label} (rmse={fit.relative_rmse:.4f}, r2={fit.r_squared:.3f})"
+        for fit in analysis.fits[:limit]
+    )
+
+
+def _format_measurements(analysis: Analysis, limit: int = 5) -> str:
+    return "; ".join(
+        f"n={measurement.size}: {measurement.seconds:.6f}s"
+        for measurement in analysis.measurements[:limit]
+    )
+
+
+def _format_verification_message(
+    *,
+    expected: str,
+    actual: str,
+    expected_fit,
+    best_fit,
+    analysis: Analysis,
+    confidence: ConfidenceResult,
+    stability,
+    passes: bool,
+    tolerance: Optional[float] = None,
+) -> str:
+    status = "✓" if passes else "✗"
+    lines = [f"{status} Expected {expected}, got {actual}."]
+
+    if expected_fit is not None:
+        lines.append(
+            f"Expected fit rmse={expected_fit.relative_rmse:.4f}; "
+            f"best fit rmse={best_fit.relative_rmse:.4f}"
+        )
+    if tolerance is not None and expected_fit is not None:
+        lines.append(
+            f"Tolerance check: Δrmse={expected_fit.relative_rmse - best_fit.relative_rmse:.4f} "
+            f"(allowed {tolerance:.4f})"
+        )
+
+    lines.append(f"Top fits: {_format_top_fits(analysis)}")
+    lines.append(f"Measurements: {_format_measurements(analysis)}")
+    lines.append(
+        f"Confidence: {confidence.level} ({confidence.score:.0%}); "
+        f"stability: {stability.stability_level} ({stability.stability_score:.0%})"
+    )
+
+    if not passes and (confidence.level != "high" or stability.is_unstable):
+        lines.append(
+            "Hint: use larger sizes, a profile such as 'ci', setup=... to exclude construction, "
+            "or robust=True for noisy timings."
+        )
+
+    return " ".join(lines)
+
+
+def _assert_space_expectation(
+    analysis: Analysis,
+    *,
+    expected: Optional[str],
+    upper: Optional[str],
+    confidence: str,
+    stability: str,
+) -> None:
+    if expected is None and upper is None:
+        return
+
+    if analysis.space_label is None:
+        raise ComplexityAssertionError(
+            "Space complexity assertion requested but memory tracking was not available."
+        )
+
+    if expected is not None and analysis.space_label != expected:
+        raise ComplexityAssertionError(
+            f"Space complexity expected {expected}, got {analysis.space_label}. "
+            f"Confidence={confidence}, stability={stability}."
+        )
+
+    if upper is not None and _get_index(analysis.space_label) > _get_index(upper):
+        raise ComplexityAssertionError(
+            f"Space complexity {analysis.space_label} exceeds upper bound {upper}. "
+            f"Confidence={confidence}, stability={stability}."
+        )
+
+
+def _raise_for_async_assertion(
+    *,
+    analysis: Analysis,
+    expected: str,
+    tolerance: float,
+    min_confidence: str,
+    space: Optional[str],
+    space_upper: Optional[str],
+) -> None:
+    confidence = compute_confidence(analysis)
+    stability = compute_stability(analysis)
+    expected_fit = next((fit for fit in analysis.fits if fit.label == expected), None)
+    if expected_fit is None:
+        aliases = {
+            "O(n**2)": "O(n^2)",
+            "O(n²)": "O(n^2)",
+            "O(n**3)": "O(n^3)",
+            "O(n³)": "O(n^3)",
+            "O(2**n)": "O(2^n)",
+            "O(2ⁿ)": "O(2^n)",
+            "O(sqrt(n))": "O(√n)",
+            "O(n*log(n))": "O(n log n)",
+            "O(nlogn)": "O(n log n)",
+        }
+        aliased = aliases.get(expected.strip())
+        if aliased:
+            expected_fit = next((fit for fit in analysis.fits if fit.label == aliased), None)
+            expected = aliased
+
+    if expected_fit is None:
+        raise ComplexityAssertionError(
+            f"Unknown complexity class: {expected}. Valid classes: {[fit.label for fit in analysis.fits]}"
+        )
+
+    best_fit = analysis.fits[0]
+    passes = analysis.best_label == expected or (expected_fit.relative_rmse - best_fit.relative_rmse) <= tolerance
+
+    if CONFIDENCE_LEVELS.get(confidence.level, 0) < CONFIDENCE_LEVELS.get(min_confidence, 0):
+        raise ComplexityAssertionError(
+            f"Confidence too low: {confidence.level} < {min_confidence}. "
+            f"Try larger or more varied input sizes."
+        )
+
+    _assert_space_expectation(
+        analysis,
+        expected=space,
+        upper=space_upper,
+        confidence=confidence.level,
+        stability=stability.stability_level,
+    )
+
+    if not passes:
+        raise ComplexityAssertionError(
+            _format_verification_message(
+                expected=expected,
+                actual=analysis.best_label,
+                expected_fit=expected_fit,
+                best_fit=best_fit,
+                analysis=analysis,
+                confidence=confidence,
+                stability=stability,
+                passes=False,
+                tolerance=tolerance,
+            )
+        )
 
 
 def auto_select_sizes(

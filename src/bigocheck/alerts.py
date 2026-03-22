@@ -8,9 +8,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import wraps
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 from .core import Analysis, benchmark_function
+from .profiles import DEFAULT_ASSERTION_PROFILE_NAME, resolve_profile
 
 
 # Complexity ordering for comparison
@@ -94,7 +95,12 @@ def check_threshold(
 def assert_threshold(
     max_complexity: str,
     sizes: Optional[List[int]] = None,
-    trials: int = 3,
+    trials: Optional[int] = None,
+    warmup: Optional[int] = None,
+    profile: Optional[str] = None,
+    setup: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    arg_factory: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    robust: Optional[bool] = None,
 ) -> Callable:
     """
     Decorator to assert function complexity is within threshold.
@@ -103,6 +109,11 @@ def assert_threshold(
         max_complexity: Maximum acceptable complexity (e.g., "O(n)").
         sizes: Input sizes for benchmarking.
         trials: Number of trials per size.
+        warmup: Warmup runs.
+        profile: Optional benchmark profile name.
+        setup: Optional callable returning (args, kwargs) outside the timed region.
+        arg_factory: Optional callable returning (args, kwargs) inside the timed region.
+        robust: Override profile robust aggregation setting.
     
     Returns:
         Decorated function.
@@ -117,8 +128,14 @@ def assert_threshold(
         >>> 
         >>> my_sort(100)  # First call triggers verification
     """
-    if sizes is None:
-        sizes = [100, 500, 1000, 5000]
+    options = resolve_profile(
+        profile=profile or DEFAULT_ASSERTION_PROFILE_NAME,
+        sizes=sizes,
+        trials=trials,
+        warmup=warmup,
+        robust=robust,
+        default_profile=DEFAULT_ASSERTION_PROFILE_NAME,
+    )
     
     def decorator(func: Callable) -> Callable:
         _verified = False
@@ -129,7 +146,15 @@ def assert_threshold(
             
             if not _verified:
                 # Run benchmark
-                analysis = benchmark_function(func, sizes=sizes, trials=trials)
+                analysis = benchmark_function(
+                    func,
+                    sizes=options.sizes,
+                    trials=options.trials,
+                    warmup=options.warmup,
+                    setup=setup,
+                    arg_factory=arg_factory,
+                    robust=options.robust,
+                )
                 result = check_threshold(analysis, max_complexity)
                 
                 if not result.passed:
@@ -149,11 +174,16 @@ def assert_threshold(
 
 def monitor_complexity(
     func: Callable,
-    sizes: List[int],
+    sizes: Optional[List[int]],
     max_complexity: str,
     *,
     on_exceed: str = "warn",
-    trials: int = 3,
+    trials: Optional[int] = None,
+    warmup: Optional[int] = None,
+    profile: Optional[str] = None,
+    setup: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    arg_factory: Optional[Callable[[int], tuple[tuple[Any, ...], dict[str, Any]]]] = None,
+    robust: Optional[bool] = None,
 ) -> Analysis:
     """
     Monitor function complexity and take action if threshold exceeded.
@@ -181,7 +211,23 @@ def monitor_complexity(
     """
     import warnings
     
-    analysis = benchmark_function(func, sizes=sizes, trials=trials)
+    options = resolve_profile(
+        profile=profile or DEFAULT_ASSERTION_PROFILE_NAME,
+        sizes=sizes,
+        trials=trials,
+        warmup=warmup,
+        robust=robust,
+        default_profile=DEFAULT_ASSERTION_PROFILE_NAME,
+    )
+    analysis = benchmark_function(
+        func,
+        sizes=options.sizes,
+        trials=options.trials,
+        warmup=options.warmup,
+        setup=setup,
+        arg_factory=arg_factory,
+        robust=options.robust,
+    )
     result = check_threshold(analysis, max_complexity)
     
     if not result.passed:

@@ -61,9 +61,9 @@ def to_csv(
     if include_fits and analysis.fits:
         writer.writerow([])
         writer.writerow(["# Complexity Fits"])
-        writer.writerow(["Class", "Error", "Scale"])
+        writer.writerow(["Class", "Error", "R Squared", "Scale"])
         for f in analysis.fits:
-            writer.writerow([f.label, f"{f.error:.6f}", f"{f.scale:.9g}"])
+            writer.writerow([f.label, f"{f.error:.6f}", f"{f.r_squared:.6f}", f"{f.scale:.9g}"])
     
     csv_str = output.getvalue()
     
@@ -132,6 +132,8 @@ def to_dict(analysis: "Analysis") -> Dict[str, Any]:
             {
                 "label": f.label,
                 "error": f.error,
+                "relative_rmse": f.relative_rmse,
+                "r_squared": f.r_squared,
                 "scale": f.scale,
             }
             for f in analysis.fits
