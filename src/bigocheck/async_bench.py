@@ -25,6 +25,7 @@ async def _run_async_trials(
     func: Callable[..., Coroutine[Any, Any, Any]],
     size: int,
     trials: int,
+    memory: bool = False,
     setup: Optional[Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]]] = None,
     arg_factory: Optional[Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]]] = None,
 ) -> Tuple[List[float], Optional[int]]:
@@ -37,7 +38,7 @@ async def _run_async_trials(
     
     for trial_idx in range(max(trials, 1)):
         args, kwargs = _build_call_args(size, setup=setup, arg_factory=arg_factory)
-        if trial_idx == 0:
+        if memory and trial_idx == 0:
             gc.collect()
             tracemalloc.start()
             start = time.perf_counter()
@@ -108,6 +109,7 @@ async def benchmark_async(
             func,
             n,
             trials,
+            memory=memory,
             setup=setup,
             arg_factory=arg_factory,
         )

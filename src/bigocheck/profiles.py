@@ -20,8 +20,8 @@ class BenchmarkProfile:
     sizes: List[int]
     trials: int
     warmup: int
-    robust: bool = False
     description: str
+    robust: bool = False
 
 
 DEFAULT_PROFILE_NAME = "balanced"
