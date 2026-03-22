@@ -31,6 +31,12 @@ class FitResult:
     label: str
     scale: float
     error: float
+    r_squared: float = 0.0
+
+    @property
+    def relative_rmse(self) -> float:
+        """Backward-compatible alias for the fit error metric."""
+        return self.error
 
 
 @dataclass
@@ -99,6 +105,62 @@ def _relative_rmse(actual: List[float], predicted: List[float]) -> float:
     return math.sqrt(num / max(len(actual), 1))
 
 
+def _r_squared(actual: List[float], predicted: List[float]) -> float:
+    """Calculate coefficient of determination for the fit."""
+    if not actual:
+        return 0.0
+
+    mean_actual = statistics.mean(actual)
+    ss_tot = sum((a - mean_actual) ** 2 for a in actual)
+    ss_res = sum((a - p) ** 2 for a, p in zip(actual, predicted))
+
+    if ss_tot <= 1e-12:
+        return 1.0 if ss_res <= 1e-12 else 0.0
+
+    return 1.0 - (ss_res / ss_tot)
+
+
+def _filter_outliers_iqr(values: List[float]) -> List[float]:
+    """Filter timing outliers using the IQR rule when enough data exists."""
+    if len(values) < 4:
+        return list(values)
+
+    q1, _, q3 = statistics.quantiles(values, n=4, method="inclusive")
+    iqr = q3 - q1
+    if iqr <= 0:
+        return list(values)
+
+    lower = q1 - 1.5 * iqr
+    upper = q3 + 1.5 * iqr
+    filtered = [value for value in values if lower <= value <= upper]
+    return filtered or list(values)
+
+
+def _summarize_trials(times: List[float], robust: bool = False) -> Tuple[float, float]:
+    """Summarize per-size trial timings."""
+    if not times:
+        return 0.0, 0.0
+
+    effective_times = _filter_outliers_iqr(times) if robust else list(times)
+    location = statistics.median(effective_times) if robust else statistics.mean(effective_times)
+    std_dev = statistics.stdev(effective_times) if len(effective_times) > 1 else 0.0
+    return location, std_dev
+
+
+def _build_call_args(
+    n: int,
+    *,
+    setup: Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]] | None = None,
+    arg_factory: Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]] | None = None,
+) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+    """Prepare call arguments for a benchmark run."""
+    if setup is not None:
+        return setup(n)
+    if arg_factory is not None:
+        return arg_factory(n)
+    return (n,), {}
+
+
 def fit_complexities(measurements: List[Measurement]) -> Tuple[List[FitResult], str]:
     """
     Fit measurements to complexity classes using least-squares scaling.
@@ -118,7 +180,14 @@ def fit_complexities(measurements: List[Measurement]) -> Tuple[List[FitResult], 
         scale = sum(b * t for b, t in zip(basis_vals, t_values)) / denom if denom else 0.0
         preds = [scale * b for b in basis_vals]
         err = _relative_rmse(t_values, preds)
-        results.append(FitResult(label=label, scale=scale, error=err))
+        results.append(
+            FitResult(
+                label=label,
+                scale=scale,
+                error=err,
+                r_squared=_r_squared(t_values, preds),
+            )
+        )
 
     results.sort(key=lambda r: r.error)
     best = results[0].label
@@ -148,7 +217,14 @@ def fit_space_complexity(measurements: List[Measurement]) -> Tuple[List[FitResul
         scale = sum(b * m for b, m in zip(basis_vals, mem_values)) / denom if denom else 0.0
         preds = [scale * b for b in basis_vals]
         err = _relative_rmse(mem_values, preds)
-        results.append(FitResult(label=label, scale=scale, error=err))
+        results.append(
+            FitResult(
+                label=label,
+                scale=scale,
+                error=err,
+                r_squared=_r_squared(mem_values, preds),
+            )
+        )
     
     results.sort(key=lambda r: r.error)
     best = results[0].label if results else None
@@ -163,7 +239,9 @@ def benchmark_function(
     warmup: int = 0,
     verbose: bool = False,
     memory: bool = False,
+    setup: Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]] | None = None,
     arg_factory: Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]] | None = None,
+    robust: bool = False,
 ) -> Analysis:
     """
     Benchmark a callable across input sizes and fit its empirical complexity.
@@ -175,12 +253,17 @@ def benchmark_function(
         warmup: Number of warmup runs before timing (to warm caches/JIT).
         verbose: If True, print progress to stderr.
         memory: If True, track peak memory usage and fit space complexity.
+        setup: Optional callable returning (args, kwargs) outside the timed region.
         arg_factory: Optional callable returning (args, kwargs) for each n.
+        robust: If True, use outlier filtering and median aggregation.
 
     Returns:
         Analysis object containing measurements, time complexity fits,
         and space complexity fits (when memory=True).
     """
+    if setup is not None and arg_factory is not None:
+        raise ValueError("Pass only one of setup or arg_factory")
+
     measurements: List[Measurement] = []
     sizes_list = list(sizes)
     
@@ -188,16 +271,9 @@ def benchmark_function(
         if verbose:
             print(f"[{idx + 1}/{len(sizes_list)}] Benchmarking n={n}...", file=sys.stderr)
         
-        # Prepare arguments
-        args: Tuple[Any, ...]
-        kwargs: Dict[str, Any]
-        if arg_factory:
-            args, kwargs = arg_factory(n)
-        else:
-            args, kwargs = (n,), {}
-        
         # Warmup runs (not timed)
         for _ in range(max(warmup, 0)):
+            args, kwargs = _build_call_args(n, setup=setup, arg_factory=arg_factory)
             func(*args, **kwargs)
         
         # Timed runs
@@ -205,9 +281,7 @@ def benchmark_function(
         peak_memory: Optional[int] = None
         
         for trial_idx in range(max(trials, 1)):
-            # Regenerate args for each trial if using factory
-            if arg_factory:
-                args, kwargs = arg_factory(n)
+            args, kwargs = _build_call_args(n, setup=setup, arg_factory=arg_factory)
             
             if memory and trial_idx == 0:
                 # Force garbage collection before measuring memory
@@ -225,8 +299,7 @@ def benchmark_function(
             
             times.append(elapsed)
         
-        avg_time = statistics.mean(times)
-        std_dev = statistics.stdev(times) if len(times) > 1 else 0.0
+        avg_time, std_dev = _summarize_trials(times, robust=robust)
         
         measurements.append(Measurement(
             size=int(n),

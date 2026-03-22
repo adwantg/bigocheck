@@ -7,11 +7,18 @@ Allows benchmarking of async functions and coroutines.
 from __future__ import annotations
 
 import asyncio
-import statistics
 import time
 from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional, Tuple
 
-from .core import Analysis, FitResult, Measurement, fit_complexities, fit_space_complexity
+from .core import (
+    Analysis,
+    FitResult,
+    Measurement,
+    _build_call_args,
+    _summarize_trials,
+    fit_complexities,
+    fit_space_complexity,
+)
 
 
 async def _run_async_trials(
@@ -53,7 +60,9 @@ async def benchmark_async(
     trials: int = 3,
     warmup: int = 0,
     memory: bool = False,
+    setup: Optional[Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]]] = None,
     arg_factory: Optional[Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]]] = None,
+    robust: bool = False,
 ) -> Analysis:
     """
     Benchmark an async callable across input sizes.
@@ -64,7 +73,9 @@ async def benchmark_async(
         trials: Number of repetitions per size (averaged).
         warmup: Number of warmup runs before timing.
         memory: If True, track peak memory usage.
+        setup: Optional callable returning (args, kwargs) outside the timed region.
         arg_factory: Optional callable returning (args, kwargs) for each n.
+        robust: If True, use outlier filtering and median aggregation.
     
     Returns:
         Analysis object with measurements and complexity fits.
@@ -78,21 +89,20 @@ async def benchmark_async(
         >>> analysis = asyncio.run(benchmark_async(async_sum, sizes=[100, 500, 1000]))
         >>> print(f"Best fit: {analysis.best_label}")
     """
+    if setup is not None and arg_factory is not None:
+        raise ValueError("Pass only one of setup or arg_factory")
+
     measurements: List[Measurement] = []
     sizes_list = list(sizes)
     
     for n in sizes_list:
-        # Prepare arguments
-        if arg_factory:
-            args, kwargs = arg_factory(n)
-        else:
-            args, kwargs = (n,), {}
-        
         # Warmup runs
         for _ in range(max(warmup, 0)):
+            args, kwargs = _build_call_args(n, setup=setup, arg_factory=arg_factory)
             await func(*args, **kwargs)
         
         # Timed runs
+        args, kwargs = _build_call_args(n, setup=setup, arg_factory=arg_factory)
         times, peak_memory = await _run_async_trials(
             func, args, kwargs, trials
         )
@@ -100,8 +110,7 @@ async def benchmark_async(
         if not memory:
             peak_memory = None
         
-        avg_time = statistics.mean(times)
-        std_dev = statistics.stdev(times) if len(times) > 1 else 0.0
+        avg_time, std_dev = _summarize_trials(times, robust=robust)
         
         measurements.append(Measurement(
             size=int(n),
