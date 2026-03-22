@@ -10,7 +10,7 @@ Empirical complexity regression checker: run a target function across input size
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Downloads](https://img.shields.io/pypi/dm/bigocheck)](https://pypi.org/project/bigocheck/)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-green.svg)]()
-[![Tests](https://img.shields.io/badge/tests-116%2F116%20passing-success)]()
+[![Tests](https://img.shields.io/badge/tests-126%2F126%20passing-success)]()
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/2eee22cbfa8443cda69af338e4e12a83)](https://app.codacy.com/gh/adwantg/bigocheck/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Typed](https://img.shields.io/badge/typed-yes-blue.svg)]()
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -42,7 +42,7 @@ print(analysis.best_label)  # O(n²) ⚠️ Regression detected!
 **Key Value**:
 - ✅ **Zero Dependencies** - No numpy, scipy, or matplotlib required
 - ✅ **CLI-First** - Use in CI/CD without writing code
-- ✅ **Production Ready** - 116/116 tests passing, v0.8.0
+- ✅ **Production Ready** - 126/126 tests passing, v1.1.0
 
 ---
 
@@ -211,20 +211,25 @@ for fit in analysis.fits[:3]:
 
 ### 2️⃣ Complexity Assertions (CI/CD Testing)
 
-Assert that functions have expected complexity. Perfect for CI/CD pipelines.
+Use `assert_bounds()` as the default guardrail for real-world CI, and `assert_complexity()` when you want an exact target class.
 
 ```python
-from bigocheck import assert_complexity, ComplexityAssertionError
+from bigocheck import assert_bounds, assert_complexity, ComplexityAssertionError
 
-@assert_complexity("O(n)", sizes=[100, 500, 1000])
+@assert_bounds(lower="O(1)", upper="O(n)", profile="ci")
 def linear_sum(n):
     return sum(range(n))
 
 # First call triggers verification
 linear_sum(10)  # Passes silently
 
+# Use assert_complexity when you need an exact class
+@assert_complexity("O(n)", profile="ci")
+def exact_linear(n):
+    return sum(range(n))
+
 # If complexity is wrong, raises ComplexityAssertionError
-@assert_complexity("O(1)")  # Wrong!
+@assert_complexity("O(1)", profile="ci")  # Wrong!
 def actually_linear(n):
     return sum(range(n))
 
@@ -382,31 +387,31 @@ analysis = benchmark_function(my_func, sizes=sizes)
 
 ### 8️⃣ pytest Integration
 
-Use the pytest plugin for testing.
+Use the pytest plugin for test defaults and suite-level reporting.
 
 ```python
-# In your test file
 import pytest
-from bigocheck.pytest_plugin import ComplexityChecker
 
-def test_with_fixture(complexity_checker):
+pytest_plugins = ["bigocheck.pytest_plugin"]
+
+
+@pytest.mark.complexity("O(n)", profile="ci", space_upper="O(n)")
+def test_with_marker_defaults(complexity_checker):
     def my_func(n):
-        return sum(range(n))
-    
-    result = complexity_checker.check(my_func, expected="O(n)")
+        return [0] * n
+
+    result = complexity_checker.check(my_func)
     assert result.passes, result.message
 
-def test_with_assertion(complexity_checker):
+def test_with_explicit_bounds(complexity_checker):
     def my_func(n):
         return sum(range(n))
-    
-    # Raises ComplexityAssertionError if fails
-    complexity_checker.assert_complexity(my_func, "O(n)")
+
+    complexity_checker.assert_bounds(my_func, upper="O(n)")
 ```
 
-**Register the plugin in conftest.py:**
-```python
-pytest_plugins = ["bigocheck.pytest_plugin"]
+```bash
+pytest -q --bigocheck-report .artifacts/bigocheck-report.json
 ```
 
 ---
@@ -427,6 +432,16 @@ analysis = benchmark_function(
     my_sort,
     sizes=[1000, 5000, 10000],
     arg_factory=arg_factory_for(integers),
+)
+```
+
+If object construction should be excluded from the timed region, use `setup=` instead:
+
+```python
+analysis = benchmark_function(
+    my_sort,
+    sizes=[1000, 5000, 10000],
+    setup=lambda n: ((integers(n),), {}),
 )
 ```
 
@@ -1027,7 +1042,7 @@ from bigocheck import benchmark_with_profile, profile_decorator
 
 # Use a preset profile
 analysis = benchmark_with_profile(my_func, profile="accurate")
-# Profiles: fast, balanced, accurate, thorough, large, small
+# Profiles: fast, balanced, accurate, thorough, large, small, ci
 
 # Decorator usage
 @profile_decorator("fast")
@@ -1036,6 +1051,8 @@ def check_me(n):
 
 check_me(100)  # Prints: 📊 check_me: O(1)
 ```
+
+`profile="ci"` is the recommended default for automated checks: larger sizes, more trials, warmup, and robust aggregation.
 
 ---
 

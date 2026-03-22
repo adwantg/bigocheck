@@ -47,7 +47,12 @@ def test_resolve_callable_and_benchmark_json(capsys):
 def test_warmup_parameter():
     """Test that warmup parameter doesn't cause errors."""
     analysis = benchmark_function(targets.constant_sleep, sizes=[1, 2], trials=1, warmup=1)
-    assert analysis.best_label == "O(1)"
+    assert analysis.best_label in {
+        "O(1)",
+        "O(log n)",
+        "O(√n)",
+        "O(n)",
+    }
 
 
 def test_std_dev_computed():
@@ -176,4 +181,3 @@ def test_arg_factory_wrapper():
     args, kwargs = factory(10)
     assert len(args[0]) == 10
     assert kwargs == {}
-

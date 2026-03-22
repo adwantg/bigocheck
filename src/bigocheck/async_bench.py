@@ -37,11 +37,11 @@ async def _run_async_trials(
     peak_memory: Optional[int] = None
     
     for trial_idx in range(max(trials, 1)):
+        args, kwargs = _build_call_args(size, setup=setup)
         if memory and trial_idx == 0:
             gc.collect()
             tracemalloc.start()
             start = time.perf_counter()
-            args, kwargs = _build_call_args(size, setup=setup)
             if arg_factory is not None:
                 args, kwargs = arg_factory(size)
             await func(*args, **kwargs)
@@ -50,7 +50,6 @@ async def _run_async_trials(
             tracemalloc.stop()
         else:
             start = time.perf_counter()
-            args, kwargs = _build_call_args(size, setup=setup)
             if arg_factory is not None:
                 args, kwargs = arg_factory(size)
             await func(*args, **kwargs)

@@ -280,12 +280,12 @@ def benchmark_function(
         peak_memory: Optional[int] = None
         
         for trial_idx in range(max(trials, 1)):
+            args, kwargs = _build_call_args(n, setup=setup)
             if memory and trial_idx == 0:
                 # Force garbage collection before measuring memory
                 gc.collect()
                 tracemalloc.start()
                 start = time.perf_counter()
-                args, kwargs = _build_call_args(n, setup=setup)
                 if arg_factory is not None:
                     args, kwargs = arg_factory(n)
                 func(*args, **kwargs)
@@ -294,7 +294,6 @@ def benchmark_function(
                 tracemalloc.stop()
             else:
                 start = time.perf_counter()
-                args, kwargs = _build_call_args(n, setup=setup)
                 if arg_factory is not None:
                     args, kwargs = arg_factory(n)
                 func(*args, **kwargs)

@@ -200,7 +200,7 @@ from .docgen import (
     generate_readme_entry,
 )
 
-# Differentiation Features (v0.8.0-dev)
+# Differentiation Features (v1.1.0-dev)
 from .ast_analysis import (
     predict_complexity,
     verify_hybrid,
@@ -339,14 +339,12 @@ __all__ = [
     "generate_complexity_docstring",
     "document_complexity",
     "generate_readme_entry",
-    # Differentiation (v0.8.0)
+    # Differentiation (v1.1.0)
     "predict_complexity",
     "verify_hybrid",
     "generate_dashboard",
     "generate_github_action",
 ]
 
-__version__ = "1.0.0"
-
-
+__version__ = "1.1.0"
 
