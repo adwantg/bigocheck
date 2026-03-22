@@ -8,7 +8,7 @@ Empirical complexity regression checker: run a target function across input size
 [![PyPI](https://img.shields.io/pypi/v/bigocheck)](https://pypi.org/project/bigocheck/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://img.shields.io/pypi/dm/bigocheck)](https://pypi.org/project/bigocheck/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/bigocheck?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLUE&right_color=BLACK&left_text=downloads)](https://pepy.tech/projects/bigocheck)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-green.svg)]()
 [![Tests](https://img.shields.io/badge/tests-126%2F126%20passing-success)]()
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/2eee22cbfa8443cda69af338e4e12a83)](https://app.codacy.com/gh/adwantg/bigocheck/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
