@@ -264,6 +264,8 @@ def verify_bounds(
         confidence_score=confidence.score,
         analysis=analysis,
         message=message,
+        space_expected=None,
+        space_actual=analysis.space_label,
         stability=stability.stability_level,
         stability_score=stability.stability_score,
     )

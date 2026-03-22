@@ -151,13 +151,10 @@ def _build_call_args(
     n: int,
     *,
     setup: Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]] | None = None,
-    arg_factory: Callable[[int], Tuple[Tuple[Any, ...], Dict[str, Any]]] | None = None,
 ) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
     """Prepare call arguments for a benchmark run."""
     if setup is not None:
         return setup(n)
-    if arg_factory is not None:
-        return arg_factory(n)
     return (n,), {}
 
 
@@ -273,7 +270,9 @@ def benchmark_function(
         
         # Warmup runs (not timed)
         for _ in range(max(warmup, 0)):
-            args, kwargs = _build_call_args(n, setup=setup, arg_factory=arg_factory)
+            args, kwargs = _build_call_args(n, setup=setup)
+            if arg_factory is not None:
+                args, kwargs = arg_factory(n)
             func(*args, **kwargs)
         
         # Timed runs
@@ -281,19 +280,23 @@ def benchmark_function(
         peak_memory: Optional[int] = None
         
         for trial_idx in range(max(trials, 1)):
-            args, kwargs = _build_call_args(n, setup=setup, arg_factory=arg_factory)
-            
             if memory and trial_idx == 0:
                 # Force garbage collection before measuring memory
                 gc.collect()
                 tracemalloc.start()
                 start = time.perf_counter()
+                args, kwargs = _build_call_args(n, setup=setup)
+                if arg_factory is not None:
+                    args, kwargs = arg_factory(n)
                 func(*args, **kwargs)
                 elapsed = time.perf_counter() - start
                 _, peak_memory = tracemalloc.get_traced_memory()
                 tracemalloc.stop()
             else:
                 start = time.perf_counter()
+                args, kwargs = _build_call_args(n, setup=setup)
+                if arg_factory is not None:
+                    args, kwargs = arg_factory(n)
                 func(*args, **kwargs)
                 elapsed = time.perf_counter() - start
             

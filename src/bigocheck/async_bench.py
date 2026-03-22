@@ -37,17 +37,22 @@ async def _run_async_trials(
     peak_memory: Optional[int] = None
     
     for trial_idx in range(max(trials, 1)):
-        args, kwargs = _build_call_args(size, setup=setup, arg_factory=arg_factory)
         if memory and trial_idx == 0:
             gc.collect()
             tracemalloc.start()
             start = time.perf_counter()
+            args, kwargs = _build_call_args(size, setup=setup)
+            if arg_factory is not None:
+                args, kwargs = arg_factory(size)
             await func(*args, **kwargs)
             elapsed = time.perf_counter() - start
             _, peak_memory = tracemalloc.get_traced_memory()
             tracemalloc.stop()
         else:
             start = time.perf_counter()
+            args, kwargs = _build_call_args(size, setup=setup)
+            if arg_factory is not None:
+                args, kwargs = arg_factory(size)
             await func(*args, **kwargs)
             elapsed = time.perf_counter() - start
         
@@ -101,7 +106,9 @@ async def benchmark_async(
     for n in sizes_list:
         # Warmup runs
         for _ in range(max(warmup, 0)):
-            args, kwargs = _build_call_args(n, setup=setup, arg_factory=arg_factory)
+            args, kwargs = _build_call_args(n, setup=setup)
+            if arg_factory is not None:
+                args, kwargs = arg_factory(n)
             await func(*args, **kwargs)
         
         # Timed runs
